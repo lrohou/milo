@@ -28,7 +28,7 @@ jobs:
         run: flutter build apk --release
 
       - name: Upload APK
-        uses: actions/artifacts@v4
+        uses: actions/upload-artifact@v4  # <-- La correction est ici
         with:
           name: release-apk
           path: build/app/outputs/flutter-apk/app-release.apk
