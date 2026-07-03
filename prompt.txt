@@ -1,0 +1,89 @@
+Rôle et Contexte :
+Tu es un développeur Flutter Senior et un expert en UI/UX design. Ta mission est de générer l'architecture complète, le code UI et la logique de base pour une application mobile nommée "Milo".
+Milo est un lecteur de musique 100% local (fichiers stockés sur l'appareil) et hors-ligne, incarné par une mascotte : un petit âne joyeux et interactif nommé Milo.
+
+Stack Technique Requise :
+
+Framework : Flutter (Dart) avec sound null safety.
+
+Audio : just_audio (pour la lecture, l'égaliseur et le pitch) et audio_service (pour la lecture en arrière-plan et les contrôles dans la barre de notifications / écran de verrouillage).
+
+State Management : Riverpod ou Provider (choisis le plus adapté pour une architecture propre).
+
+Accès fichiers : permission_handler et on_audio_query (pour scanner le stockage local).
+
+Animations : flutter_animate ou animations natives avancées.
+
+Design System (Néo-brutalisme + Glassmorphisme) :
+L'interface doit être visuellement percutante, audacieuse (Néo-brutalisme : bordures noires assumées, ombres dures décalées) combinée à des éléments modernes et lisses (Glassmorphisme : cartes translucides, flou d'arrière-plan BackdropFilter).
+Utilise STRICTEMENT cette palette de couleurs :
+
+Backgrounds profonds & bordures : #111111 et #1C1C1C.
+
+Textes principaux et fonds clairs : #FFFED5 (Crème).
+
+Accents, Boutons d'action, Ombres néo-brutalistes : #FEE402 (Jaune vif) et #FDCA00 (Jaune doré).
+La typographie doit être sans-serif, géométrique et grasse pour les titres (ex: Syne, Space Grotesk ou Montserrat).
+
+Architecture Audio de Base :
+L'application doit scanner les dossiers locaux pour trouver les MP3/FLAC. Elle doit pouvoir jouer la musique en arrière-plan avec une notification persistante contenant les contrôles (Play, Pause, Suivant, Précédent) intégrés nativement à iOS et Android.
+
+Les 8 Fonctionnalités Spécifiques à implémenter (UI & Logique) :
+
+1. L'Égaliseur "Grandes Oreilles" (Interactive UI)
+
+UI : Au centre de la vue "Lecture en cours", affiche la tête de l'âne Milo (utilise un placeholder 3D ou une icône vectorielle détaillée).
+
+Logique : Ajoute un GestureDetector sur ses oreilles. Un swipe vers le haut booste les aigus (treble) via just_audio. Un écartement (pincer/zoomer) modifie le pan/stéréo. Un tirage vers le bas augmente les basses. Les oreilles doivent se déformer visuellement lors de l'interaction.
+
+2. Le "Rythme du Terrain" (Mode Sport)
+
+Logique : Utilise le package sensors_plus (accéléromètre). Crée un service qui écoute l'intensité des mouvements, calibré spécifiquement pour des mouvements intenses comme des sprints soudains ou des sauts sur un terrain de basket.
+
+Action : Si un pic d'effort est détecté, l'application bascule dynamiquement la file d'attente vers les morceaux avec le BPM le plus élevé de la bibliothèque locale.
+
+3. Le Mode "Pâture Zen" (Clustering Local ML)
+
+UI : Une vue sous forme de carte spatiale (Canvas) où les morceaux forment des "îlots" ou "pâtures".
+
+Logique : Prépare un service de clustering (prêt à recevoir un modèle de machine learning / algorithme K-means) pour analyser localement les métadonnées, le tempo et la durée des pistes afin de les regrouper automatiquement par ambiance (Électro, Chill, etc.) sans connexion externe.
+
+4. Les Avatars d'Humeur Dynamiques
+
+UI : Le composant visuel de Milo doit écouter le Stream du morceau actuel. Crée un système d'états : si le genre (lu via métadonnées) est "Metal", Milo affiche un style rock. Si "Jazz", un style posé avec un café. Si le BPM est lent, une animation de balancement fluide et relaxante.
+
+5. Le Mode "Cargo" (Partage Offline)
+
+Logique : Intègre l'interface et la logique de base utilisant le package nearby_connections (ou équivalent P2P Bluetooth/Wi-Fi Direct).
+
+UI : Un bouton "Glisser dans la sacoche" qui ouvre un radar pour détecter un autre utilisateur de l'app Milo à proximité et lui transférer le fichier audio localement.
+
+6. La "Charette Jukebox" (Multijoueur Local)
+
+Logique : Prépare une architecture de serveur local léger (ex: shelf ou wifi_iot) permettant au téléphone maître d'exposer une page web simple sur le réseau local ou de recevoir des sockets.
+
+UI : Les amis connectés au même point d'accès Wi-Fi peuvent voir la file d'attente et voter pour le prochain morceau.
+
+7. Le Réveil "Ruade" (Alarme Intelligente)
+
+Logique : Utilise android_alarm_manager_plus et flutter_local_notifications.
+
+Action : Lance une piste calme au premier déclenchement. Prépare un compteur de "Snooze". Si le compteur dépasse 2, déclenche la piste la plus agressive (BPM élevé/genre Rock) au volume maximum avec une alerte visuelle tremblante (Ruade).
+
+8. La "Météo Intérieure" (Dessin sur Canvas)
+
+UI : Un "bottom sheet" en glassmorphisme qui révèle un CustomPaint (Canvas) vierge.
+
+Logique : L'utilisateur y dessine avec son doigt. Utilise une détection de forme basique (bounding box ou calcul de path) pour identifier si c'est un rond (Soleil = Musique joyeuse/majeure), un trait brisé (Éclair = Musique intense), etc., et filtre la liste de lecture en conséquence.
+
+Instructions de Livraison :
+
+Génère la structure des dossiers (ex: /lib/features, /lib/core, /lib/shared).
+
+Fournis le code de main.dart intégrant le thème Néo-brutalisme/Glassmorphisme complet avec la palette fournie.
+
+Fournis le code du lecteur audio principal (audio_handler) gérant l'arrière-plan.
+
+Crée les widgets UI de base pour au moins 3 des fonctionnalités clés (Égaliseur Oreilles, Météo Intérieure, Rythme du terrain).
+
+Le code doit être propre, modulaire, commenté, et l'UX doit être exempte de friction, avec des paddings généreux et des retours haptiques (HapticFeedback) sur chaque action.

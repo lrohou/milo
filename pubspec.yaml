@@ -1,0 +1,62 @@
+name: milo
+description: Milo — Lecteur de musique local 100% offline avec mascotte interactive.
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # Audio
+  just_audio: ^0.9.46
+  audio_service: ^0.18.17
+  audio_session: ^0.1.25
+
+  # Library scanning & permissions
+  permission_handler: ^11.4.0
+  on_audio_query: ^2.9.0
+
+  # Animations
+  flutter_animate: ^4.5.2
+
+  # Sensors (Rythme du Terrain)
+  sensors_plus: ^6.1.1
+
+  # Typography
+  google_fonts: ^6.2.1
+
+  # P2P offline sharing (Cargo)
+  nearby_connections: ^4.3.0
+
+  # Local jukebox server
+  shelf: ^1.4.2
+  shelf_router: ^1.1.4
+
+  # Alarm (Ruade)
+  android_alarm_manager_plus: ^4.0.7
+  flutter_local_notifications: ^18.0.1
+  timezone: ^0.10.0
+
+  # Utils
+  path_provider: ^2.1.5
+  collection: ^1.19.1
+  uuid: ^4.5.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
