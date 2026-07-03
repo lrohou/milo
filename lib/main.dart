@@ -5,22 +5,34 @@ import 'package:milo/app.dart';
 import 'package:milo/core/audio/audio_handler.dart';
 import 'package:milo/core/providers/audio_providers.dart';
 
+import 'package:flutter_native_splash/flutter_native_splash.dart';
+
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
+  final widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
+  FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
-  // Session audio pour lecture arrière-plan
-  final session = await AudioSession.instance;
-  await session.configure(const AudioSessionConfiguration.music());
+  MiloAudioHandler? handler;
+  try {
+    // Session audio pour lecture arrière-plan
+    final session = await AudioSession.instance;
+    await session.configure(const AudioSessionConfiguration.music());
 
-  // Initialisation du handler audio avec notification persistante
-  final handler = await initAudioService();
+    // Initialisation du handler audio avec notification persistante
+    handler = await initAudioService();
+  } catch (e) {
+    debugPrint('Erreur init audio: $e');
+  }
 
   runApp(
     ProviderScope(
       overrides: [
-        audioHandlerProvider.overrideWithValue(handler),
+        if (handler != null) audioHandlerProvider.overrideWithValue(handler),
       ],
-      child: const MiloApp(),
+      child: handler == null 
+          ? const MaterialApp(home: Scaffold(body: Center(child: Text('Erreur init audio_service')))) 
+          : const MiloApp(),
     ),
   );
+  
+  FlutterNativeSplash.remove();
 }

@@ -193,7 +193,7 @@ Future<MiloAudioHandler> initAudioService() async {
       androidNotificationChannelName: 'Milo — Lecture en cours',
       androidNotificationOngoing: true,
       androidStopForegroundOnPause: true,
-      androidNotificationIcon: 'mipmap/ic_launcher',
+      androidNotificationIcon: 'mipmap/launcher_icon',
     ),
   );
 }
