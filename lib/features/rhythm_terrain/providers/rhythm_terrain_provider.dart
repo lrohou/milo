@@ -28,10 +28,12 @@ final rhythmTerrainControllerProvider = Provider<void>((ref) {
     final sub = service.sprintDetectedStream.listen((_) async {
       final library = ref.read(libraryProvider).valueOrNull ?? [];
       final handler = ref.read(audioHandlerProvider);
-      await handler.switchToHighBpmQueue(library);
+      await handler.startTerrainRhythmMode(library);
     });
     ref.onDispose(sub.cancel);
   } else {
     service.stop();
+    final handler = ref.read(audioHandlerProvider);
+    handler.stopTerrainRhythmMode();
   }
 });

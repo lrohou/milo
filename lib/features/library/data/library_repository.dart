@@ -21,7 +21,10 @@ class LibraryRepository {
 
       if (songs.isEmpty) return _demoTracks();
 
-      return songs.map(_mapSong).toList();
+      final validSongs = songs.where((s) => (s.duration ?? 0) >= 30000).toList();
+      if (validSongs.isEmpty) return _demoTracks();
+
+      return validSongs.map(_mapSong).toList();
     } catch (_) {
       return _demoTracks();
     }

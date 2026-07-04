@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
@@ -45,7 +46,9 @@ class MiloAudioHandler extends BaseAudioHandler
               artist: t.artist,
               album: t.album,
               duration: Duration(milliseconds: t.durationMs),
-              artUri: t.artUri != null ? Uri.parse(t.artUri!) : null,
+              artUri: t.artUri != null && int.tryParse(t.artUri!) != null
+                  ? Uri.parse('content://media/external/audio/media/${t.artUri}/albumart')
+                  : null,
             ),
           )
           .toList(),
@@ -56,14 +59,41 @@ class MiloAudioHandler extends BaseAudioHandler
     }
   }
 
-  /// Remplace la file par les morceaux à BPM élevé (Rythme du Terrain).
-  Future<void> switchToHighBpmQueue(List<TrackModel> allTracks) async {
+  Timer? _terrainTimer;
+
+  /// Remplace la file par les morceaux à BPM élevé et joue des extraits de 20s.
+  Future<void> startTerrainRhythmMode(List<TrackModel> allTracks) async {
     if (allTracks.isEmpty) return;
     final sorted = [...allTracks]..sort(
         (a, b) => b.effectiveBpm.compareTo(a.effectiveBpm),
       );
-    await loadQueue(sorted.take(20).toList());
+    final topTracks = sorted.take(20).toList()..shuffle();
+    await loadQueue(topTracks);
+    
+    _terrainTimer?.cancel();
+    _startTerrainSnippet();
+  }
+
+  Future<void> _startTerrainSnippet() async {
+    final current = currentTrack;
+    if (current == null) return;
+
+    final duration = Duration(milliseconds: current.durationMs);
+    if (duration.inSeconds > 20) {
+      await seek(Duration(milliseconds: (duration.inMilliseconds * 0.3).round()));
+    }
     await play();
+
+    _terrainTimer = Timer(const Duration(seconds: 20), () {
+      skipToNext().then((_) {
+        Future.delayed(const Duration(milliseconds: 500), _startTerrainSnippet);
+      });
+    });
+  }
+
+  void stopTerrainRhythmMode() {
+    _terrainTimer?.cancel();
+    _terrainTimer = null;
   }
 
   Future<void> _loadTrack(int index) async {
@@ -78,7 +108,9 @@ class MiloAudioHandler extends BaseAudioHandler
         artist: track.artist,
         album: track.album,
         duration: Duration(milliseconds: track.durationMs),
-        artUri: track.artUri != null ? Uri.parse(track.artUri!) : null,
+        artUri: track.artUri != null && int.tryParse(track.artUri!) != null
+            ? Uri.parse('content://media/external/audio/media/${track.artUri}/albumart')
+            : null,
       ),
     );
 
@@ -108,6 +140,7 @@ class MiloAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> stop() async {
+    stopTerrainRhythmMode();
     await _player.stop();
     await super.stop();
   }

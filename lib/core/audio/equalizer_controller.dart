@@ -8,6 +8,7 @@ class EqualizerState {
     this.pan = 0.0,
     this.leftEarStretch = 1.0,
     this.rightEarStretch = 1.0,
+    this.speed = 1.0,
   });
 
   /// -1.0 (min) à 1.0 (max)
@@ -16,6 +17,7 @@ class EqualizerState {
   final double pan;
   final double leftEarStretch;
   final double rightEarStretch;
+  final double speed;
 
   EqualizerState copyWith({
     double? bass,
@@ -23,6 +25,7 @@ class EqualizerState {
     double? pan,
     double? leftEarStretch,
     double? rightEarStretch,
+    double? speed,
   }) {
     return EqualizerState(
       bass: bass ?? this.bass,
@@ -30,6 +33,7 @@ class EqualizerState {
       pan: pan ?? this.pan,
       leftEarStretch: leftEarStretch ?? this.leftEarStretch,
       rightEarStretch: rightEarStretch ?? this.rightEarStretch,
+      speed: speed ?? this.speed,
     );
   }
 }
@@ -54,6 +58,9 @@ class EqualizerController {
     // Bass → volume boost subtil
     final volume = (1.0 + _state.bass * 0.15).clamp(0.5, 1.0);
     await _player.setVolume(volume);
+
+    // Speed
+    await _player.setSpeed(_state.speed);
 
     // Pan : valeur stockée pour l'UI ; intégration native (AudioBalance) à brancher
     // via platform channel sur Android Equalizer / iOS AVAudioEngine.
@@ -82,6 +89,16 @@ class EqualizerController {
       leftEarStretch: 1.0 + (value < 0 ? -value * 0.25 : 0),
       rightEarStretch: 1.0 + (value > 0 ? value * 0.25 : 0),
     );
+    await apply();
+  }
+
+  Future<void> setSpeed(double value) async {
+    _state = _state.copyWith(speed: value);
+    await apply();
+  }
+
+  Future<void> resetAll() async {
+    _state = const EqualizerState();
     await apply();
   }
 

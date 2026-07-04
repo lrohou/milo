@@ -4,11 +4,10 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:milo/core/providers/audio_providers.dart';
 import 'package:milo/core/theme/app_colors.dart';
-import 'package:milo/features/interior_weather/presentation/interior_weather_sheet.dart';
+
 import 'package:milo/features/mood_avatars/widgets/dynamic_milo_avatar.dart';
-import 'package:milo/features/player/presentation/widgets/milo_equalizer_widget.dart';
 import 'package:milo/features/rhythm_terrain/presentation/rhythm_terrain_widget.dart';
-import 'package:milo/shared/widgets/neo_brutal_button.dart';
+import 'package:milo/shared/widgets/milo_artwork_widget.dart';
 
 /// Écran « Lecture en cours » avec égaliseur Grandes Oreilles.
 class NowPlayingScreen extends ConsumerWidget {
@@ -29,22 +28,54 @@ class NowPlayingScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // — En-tête : Avatar Milo + bouton Météo
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const DynamicMiloAvatar(size: 64),
-                NeoBrutalButton(
-                  label: 'Météo',
-                  icon: Icons.draw_rounded,
-                  onPressed: () => showInteriorWeatherSheet(context, ref),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const DynamicMiloAvatar(size: 64),
+                    Row(
+                      children: [
+                        StreamBuilder<bool>(
+                          stream: handler.player.shuffleModeEnabledStream,
+                          builder: (context, snapshot) {
+                            final isEnabled = snapshot.data ?? false;
+                            return IconButton(
+                              icon: Icon(isEnabled ? Icons.shuffle_on_rounded : Icons.shuffle_rounded, color: AppColors.cream),
+                              onPressed: () async {
+                                HapticFeedback.selectionClick();
+                                await handler.player.setShuffleModeEnabled(!isEnabled);
+                                if (!isEnabled) {
+                                  await handler.player.shuffle();
+                                }
+                              },
+                            );
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.queue_music_rounded, color: AppColors.cream),
+                          onPressed: () => _showQueue(context, handler),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.cream),
+                          onPressed: () {
+                            // C'est géré par le PlayerOverlay avec le drag, mais on peut rajouter un bouton pour réduire.
+                            // Comme on n'a pas accès direct au provider ici sans le lire, on peut le faire via ref
+                            // si on l'importe, mais pour l'instant le swipe down suffit.
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
-              ],
-            ),
             const SizedBox(height: 24),
 
             // — Infos morceau
             if (media != null) ...[
+              Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: MiloArtworkWidget(id: media.id, size: 280, borderRadius: 24),
+                ),
+              ),
               Text(
                 media.title,
                 style: Theme.of(context).textTheme.headlineMedium,
@@ -71,10 +102,7 @@ class NowPlayingScreen extends ConsumerWidget {
 
             const SizedBox(height: 32),
 
-            // — Égaliseur Grandes Oreilles
-            const MiloEqualizerWidget(),
 
-            const SizedBox(height: 32),
 
             // — Rythme du Terrain (mode sport)
             const RhythmTerrainWidget(),
@@ -99,6 +127,52 @@ class NowPlayingScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showQueue(BuildContext context, dynamic handler) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.backgroundSurface,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => Column(
+        children: [
+          const SizedBox(height: 12),
+          Container(
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text('File d\'attente', style: Theme.of(context).textTheme.titleLarge),
+          const SizedBox(height: 12),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              itemCount: handler.tracks.length,
+              itemBuilder: (context, index) {
+                final track = handler.tracks[index];
+                final isPlaying = index == handler.currentIndex;
+                return ListTile(
+                  leading: Icon(
+                    isPlaying ? Icons.play_arrow_rounded : Icons.music_note_rounded,
+                    color: isPlaying ? AppColors.yellowVivid : AppColors.cream,
+                  ),
+                  title: Text(track.title, style: TextStyle(color: isPlaying ? AppColors.yellowVivid : AppColors.cream)),
+                  subtitle: Text(track.artist, style: TextStyle(color: AppColors.cream.withValues(alpha: 0.6))),
+                  onTap: () {
+                    handler.skipToQueueItem(index);
+                    Navigator.pop(ctx);
+                  },
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

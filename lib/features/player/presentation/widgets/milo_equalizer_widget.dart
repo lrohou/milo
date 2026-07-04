@@ -9,6 +9,7 @@ import 'package:milo/core/audio/equalizer_controller.dart';
 import 'package:milo/core/providers/audio_providers.dart';
 import 'package:milo/core/theme/app_colors.dart';
 import 'package:milo/shared/widgets/glass_card.dart';
+import 'package:milo/shared/widgets/neo_brutal_button.dart';
 
 /// Provider de l'état visuel de l'égaliseur « Grandes Oreilles ».
 final equalizerStateProvider =
@@ -121,7 +122,48 @@ class _MiloEqualizerWidgetState extends ConsumerState<MiloEqualizerWidget>
         ),
         const SizedBox(height: 20),
         _EqualizerLabels(eqState: eqState),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            NeoBrutalButton(
+              label: 'Lent',
+              icon: Icons.speed_rounded,
+              backgroundColor: eqState.speed < 1.0 ? AppColors.yellowVivid : AppColors.backgroundSurface,
+              foregroundColor: eqState.speed < 1.0 ? AppColors.backgroundDeep : AppColors.cream,
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                _handler.equalizer.setSpeed(0.5);
+                ref.read(equalizerStateProvider.notifier).state = _handler.equalizer.state;
+              },
+            ),
+            const SizedBox(width: 8),
+            NeoBrutalButton(
+              label: 'Rapide',
+              icon: Icons.fast_forward_rounded,
+              backgroundColor: eqState.speed > 1.0 ? AppColors.yellowVivid : AppColors.backgroundSurface,
+              foregroundColor: eqState.speed > 1.0 ? AppColors.backgroundDeep : AppColors.cream,
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                _handler.equalizer.setSpeed(1.5);
+                ref.read(equalizerStateProvider.notifier).state = _handler.equalizer.state;
+              },
+            ),
+            const SizedBox(width: 8),
+            NeoBrutalButton(
+              label: 'Reset',
+              icon: Icons.refresh_rounded,
+              backgroundColor: AppColors.backgroundSurface,
+              foregroundColor: AppColors.cream,
+              onPressed: () {
+                HapticFeedback.heavyImpact();
+                _handler.equalizer.resetAll();
+                ref.read(equalizerStateProvider.notifier).state = _handler.equalizer.state;
+              },
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
         Text(
           '↑ Aigus  ·  ↓ Basses  ·  Pincer = Pan',
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(

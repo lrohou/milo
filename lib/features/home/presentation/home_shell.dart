@@ -8,10 +8,11 @@ import 'package:milo/features/jukebox/presentation/jukebox_screen.dart';
 import 'package:milo/features/library/presentation/library_screen.dart';
 import 'package:milo/features/library/providers/library_providers.dart';
 import 'package:milo/features/pasture_zen/presentation/pasture_zen_screen.dart';
-import 'package:milo/features/player/presentation/screens/now_playing_screen.dart';
+import 'package:milo/features/home/presentation/home_screen.dart';
 import 'package:milo/features/wake_kick/presentation/wake_kick_screen.dart';
 import 'package:milo/core/providers/audio_providers.dart';
 import 'package:milo/shared/widgets/glass_card.dart';
+import 'package:milo/features/player/presentation/widgets/player_overlay.dart';
 
 /// Coquille de navigation principale Milo.
 class HomeShell extends ConsumerStatefulWidget {
@@ -23,9 +24,10 @@ class HomeShell extends ConsumerStatefulWidget {
 
 class _HomeShellState extends ConsumerState<HomeShell> {
   int _index = 0;
+  late final PageController _pageController;
 
   static const _tabs = [
-    (icon: Icons.play_circle_filled_rounded, label: 'Lecture'),
+    (icon: Icons.home_rounded, label: 'Accueil'),
     (icon: Icons.library_music_rounded, label: 'Bibliothèque'),
     (icon: Icons.grass_rounded, label: 'Pâture'),
     (icon: Icons.explore_rounded, label: 'Modes'),
@@ -34,7 +36,14 @@ class _HomeShellState extends ConsumerState<HomeShell> {
   @override
   void initState() {
     super.initState();
+    _pageController = PageController(initialPage: _index);
     WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   Future<void> _bootstrap() async {
@@ -50,31 +59,42 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     return Scaffold(
       body: SafeArea(
         bottom: false,
-        child: IndexedStack(
-          index: _index,
+        child: Stack(
           children: [
-            const NowPlayingScreen(),
-            const LibraryScreen(),
-            const PastureZenScreen(),
-            _ModesHub(onNavigate: (screen) {
-              Navigator.of(context).push(
-                PageRouteBuilder<void>(
-                  pageBuilder: (ctx, anim, anim2) => screen,
-                  transitionsBuilder: (ctx, anim, anim2, child) {
-                    return SlideTransition(
-                      position: Tween(
-                        begin: const Offset(1, 0),
-                        end: Offset.zero,
-                      ).animate(CurvedAnimation(
-                        parent: anim,
-                        curve: Curves.easeOutCubic,
-                      )),
-                      child: child,
-                    );
-                  },
-                ),
-              );
-            }),
+            PageView(
+              controller: _pageController,
+              onPageChanged: (i) {
+                setState(() => _index = i);
+              },
+              children: [
+                const HomeScreen(),
+                const LibraryScreen(),
+                const PastureZenScreen(),
+                _ModesHub(onNavigate: (screen) {
+                  Navigator.of(context).push(
+                    PageRouteBuilder<void>(
+                      pageBuilder: (ctx, anim, anim2) => screen,
+                      transitionsBuilder: (ctx, anim, anim2, child) {
+                        return SlideTransition(
+                          position: Tween(
+                            begin: const Offset(1, 0),
+                            end: Offset.zero,
+                          ).animate(CurvedAnimation(
+                            parent: anim,
+                            curve: Curves.easeOutCubic,
+                          )),
+                          child: child,
+                        );
+                      },
+                    ),
+                  );
+                }),
+              ],
+            ),
+            const Align(
+              alignment: Alignment.bottomCenter,
+              child: PlayerOverlay(),
+            ),
           ],
         ),
       ),
@@ -86,7 +106,11 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           currentIndex: _index,
           onTap: (i) {
             HapticFeedback.selectionClick();
-            setState(() => _index = i);
+            _pageController.animateToPage(
+              i,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOutCubic,
+            );
           },
           items: _tabs
               .map(
