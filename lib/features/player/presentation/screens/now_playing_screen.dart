@@ -6,6 +6,7 @@ import 'package:milo/core/providers/audio_providers.dart';
 import 'package:milo/core/theme/app_colors.dart';
 
 import 'package:milo/features/mood_avatars/widgets/dynamic_milo_avatar.dart';
+import 'package:milo/features/player/presentation/widgets/player_overlay.dart';
 import 'package:milo/features/rhythm_terrain/presentation/rhythm_terrain_widget.dart';
 import 'package:milo/shared/widgets/milo_artwork_widget.dart';
 
@@ -57,9 +58,7 @@ class NowPlayingScreen extends ConsumerWidget {
                         IconButton(
                           icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.cream),
                           onPressed: () {
-                            // C'est géré par le PlayerOverlay avec le drag, mais on peut rajouter un bouton pour réduire.
-                            // Comme on n'a pas accès direct au provider ici sans le lire, on peut le faire via ref
-                            // si on l'importe, mais pour l'instant le swipe down suffit.
+                            ref.read(isPlayerExpandedProvider.notifier).state = false;
                           },
                         ),
                       ],

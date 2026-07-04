@@ -67,8 +67,8 @@ class LibraryRepository {
 
   int? _estimateBpm(String title) {
     final t = title.toLowerCase();
-    if (t.contains('slow') || t.contains('ballad')) return 70;
-    if (t.contains('fast') || t.contains('sprint')) return 160;
+    if (t.contains('slow') || t.contains('ballad')) return 90;
+    if (t.contains('fast') || t.contains('sprint')) return 120;
     return null;
   }
 

@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'dart:ui';
+import 'dart:math';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
@@ -22,6 +22,8 @@ class MiloAudioHandler extends BaseAudioHandler
   late final EqualizerController equalizer = EqualizerController(_player);
   final List<TrackModel> _tracks = [];
   int _currentIndex = 0;
+  final List<int> _history = [];
+  bool _isShuffleEnabled = false;
 
   /// Stream réactif du morceau en cours (TrackModel).
   final _currentTrackController = StreamController<TrackModel?>.broadcast();
@@ -32,6 +34,7 @@ class MiloAudioHandler extends BaseAudioHandler
 
   /// Charge la file d'attente depuis la bibliothèque locale.
   Future<void> loadQueue(List<TrackModel> tracks, {int startIndex = 0}) async {
+    _history.clear();
     _tracks
       ..clear()
       ..addAll(tracks);
@@ -149,9 +152,29 @@ class MiloAudioHandler extends BaseAudioHandler
   Future<void> seek(Duration position) => _player.seek(position);
 
   @override
+  Future<void> setShuffleMode(AudioServiceShuffleMode shuffleMode) async {
+    _isShuffleEnabled = shuffleMode == AudioServiceShuffleMode.all;
+    await _player.setShuffleModeEnabled(_isShuffleEnabled);
+    playbackState.add(_buildState(_player.playing).copyWith(
+      shuffleMode: shuffleMode,
+    ));
+  }
+
+  @override
   Future<void> skipToNext() async {
     if (_tracks.isEmpty) return;
-    final next = (_currentIndex + 1) % _tracks.length;
+    _history.add(_currentIndex);
+    
+    int next;
+    if (_isShuffleEnabled && _tracks.length > 1) {
+      next = Random().nextInt(_tracks.length);
+      while (next == _currentIndex) {
+        next = Random().nextInt(_tracks.length);
+      }
+    } else {
+      next = (_currentIndex + 1) % _tracks.length;
+    }
+    
     await _loadTrack(next);
     await play();
   }
@@ -159,7 +182,14 @@ class MiloAudioHandler extends BaseAudioHandler
   @override
   Future<void> skipToPrevious() async {
     if (_tracks.isEmpty) return;
-    final prev = (_currentIndex - 1 + _tracks.length) % _tracks.length;
+    
+    int prev;
+    if (_history.isNotEmpty) {
+      prev = _history.removeLast();
+    } else {
+      prev = (_currentIndex - 1 + _tracks.length) % _tracks.length;
+    }
+    
     await _loadTrack(prev);
     await play();
   }

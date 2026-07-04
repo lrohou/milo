@@ -58,6 +58,18 @@ class PlaylistNotifier extends StateNotifier<AsyncValue<List<PlaylistModel>>> {
     state = AsyncValue.data(updated);
     await _repo.savePlaylists(updated);
   }
+
+  Future<void> removeTrackFromPlaylist(String playlistId, String trackId) async {
+    final current = state.valueOrNull ?? [];
+    final updated = current.map((p) {
+      if (p.id == playlistId && p.trackIds.contains(trackId)) {
+        return p.copyWith(trackIds: p.trackIds.where((id) => id != trackId).toList());
+      }
+      return p;
+    }).toList();
+    state = AsyncValue.data(updated);
+    await _repo.savePlaylists(updated);
+  }
 }
 
 final playlistsProvider = StateNotifierProvider<PlaylistNotifier, AsyncValue<List<PlaylistModel>>>((ref) {

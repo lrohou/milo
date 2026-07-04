@@ -123,8 +123,10 @@ class _MiloEqualizerWidgetState extends ConsumerState<MiloEqualizerWidget>
         const SizedBox(height: 20),
         _EqualizerLabels(eqState: eqState),
         const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
           children: [
             NeoBrutalButton(
               label: 'Lent',
@@ -137,7 +139,6 @@ class _MiloEqualizerWidgetState extends ConsumerState<MiloEqualizerWidget>
                 ref.read(equalizerStateProvider.notifier).state = _handler.equalizer.state;
               },
             ),
-            const SizedBox(width: 8),
             NeoBrutalButton(
               label: 'Rapide',
               icon: Icons.fast_forward_rounded,
@@ -149,7 +150,6 @@ class _MiloEqualizerWidgetState extends ConsumerState<MiloEqualizerWidget>
                 ref.read(equalizerStateProvider.notifier).state = _handler.equalizer.state;
               },
             ),
-            const SizedBox(width: 8),
             NeoBrutalButton(
               label: 'Reset',
               icon: Icons.refresh_rounded,

@@ -92,16 +92,26 @@ class MiniPlayer extends ConsumerWidget {
             ),
           ),
           IconButton(
-            icon: Icon(isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded, color: AppColors.cream, size: 32),
+            icon: const Icon(Icons.skip_previous_rounded, color: AppColors.cream, size: 32),
+            onPressed: () => handler.skipToPrevious(),
+          ),
+          IconButton(
+            icon: Icon(
+              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              color: AppColors.yellowVivid,
+              size: 32,
+            ),
             onPressed: () {
-              isPlaying ? handler.pause() : handler.play();
+              if (isPlaying) {
+                handler.pause();
+              } else {
+                handler.play();
+              }
             },
           ),
           IconButton(
             icon: const Icon(Icons.skip_next_rounded, color: AppColors.cream, size: 32),
-            onPressed: () {
-              handler.skipToNext();
-            },
+            onPressed: () => handler.skipToNext(),
           ),
         ],
       ),

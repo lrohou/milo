@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:milo/core/providers/audio_providers.dart';
 import 'package:milo/core/theme/app_colors.dart';
-import 'package:milo/features/library/providers/library_providers.dart';
 import 'package:milo/features/home/presentation/widgets/mood_selector_widget.dart';
 import 'package:milo/features/player/presentation/widgets/milo_equalizer_widget.dart';
 import 'package:milo/features/playlists/models/playlist_model.dart';
+import 'package:milo/features/playlists/presentation/playlist_detail_screen.dart';
 import 'package:milo/features/playlists/providers/playlist_providers.dart';
 import 'package:milo/shared/widgets/glass_card.dart';
 import 'package:milo/shared/widgets/neo_brutal_button.dart';
@@ -132,20 +131,14 @@ class _PlaylistCard extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 12),
       child: GlassCard(
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        onTap: () async {
+        onTap: () {
           HapticFeedback.selectionClick();
-          final allTracks = ref.read(effectiveLibraryProvider);
-          final tracksToPlay = allTracks.where((t) => playlist.trackIds.contains(t.id)).toList();
-          
-          if (tracksToPlay.isNotEmpty) {
-            final handler = ref.read(audioHandlerProvider);
-            await handler.loadQueue(tracksToPlay);
-            await handler.play();
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('La playlist est vide ou les morceaux sont introuvables.')),
-            );
-          }
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => PlaylistDetailScreen(playlist: playlist),
+            ),
+          );
         },
         child: Row(
           children: [
@@ -178,10 +171,6 @@ class _PlaylistCard extends ConsumerWidget {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.edit_rounded, color: AppColors.cream),
-              onPressed: () => _showEditDialog(context, ref),
-            ),
-            IconButton(
               icon: const Icon(Icons.delete_rounded, color: AppColors.error),
               onPressed: () {
                 ref.read(playlistsProvider.notifier).deletePlaylist(playlist.id);
@@ -190,58 +179,6 @@ class _PlaylistCard extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
-
-  void _showEditDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        final allTracks = ref.read(effectiveLibraryProvider);
-        // Simple dialog to add/remove tracks
-        return StatefulBuilder(
-          builder: (context, setState) {
-            return AlertDialog(
-              backgroundColor: AppColors.backgroundSurface,
-              title: Text('Modifier ${playlist.name}', style: const TextStyle(color: AppColors.cream)),
-              content: SizedBox(
-                width: double.maxFinite,
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: allTracks.length,
-                  itemBuilder: (context, index) {
-                    final track = allTracks[index];
-                    final isSelected = playlist.trackIds.contains(track.id);
-                    return CheckboxListTile(
-                      title: Text(track.title, style: const TextStyle(color: AppColors.cream)),
-                      subtitle: Text(track.artist, style: TextStyle(color: AppColors.cream.withValues(alpha: 0.5))),
-                      value: isSelected,
-                      activeColor: AppColors.yellowVivid,
-                      checkColor: AppColors.backgroundDeep,
-                      onChanged: (val) {
-                        if (val == true) {
-                          ref.read(playlistsProvider.notifier).addTrackToPlaylist(playlist.id, track.id);
-                        } else {
-                          final updatedPlaylist = playlist.copyWith(
-                            trackIds: playlist.trackIds.where((id) => id != track.id).toList()
-                          );
-                          ref.read(playlistsProvider.notifier).updatePlaylist(updatedPlaylist);
-                        }
-                      },
-                    );
-                  },
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  child: const Text('Fermer', style: TextStyle(color: AppColors.cream)),
-                ),
-              ],
-            );
-          }
-        );
-      },
     );
   }
 }
