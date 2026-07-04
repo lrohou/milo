@@ -34,6 +34,7 @@ class NowPlayingScreen extends ConsumerWidget {
           return false;
         },
         child: SingleChildScrollView(
+          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -111,13 +112,6 @@ class NowPlayingScreen extends ConsumerWidget {
 
             const SizedBox(height: 32),
 
-
-
-            // — Rythme du Terrain (mode sport)
-            const RhythmTerrainWidget(),
-
-            const SizedBox(height: 32),
-
             // — Contrôles lecture
             _PlaybackControls(
               isPlaying: isPlaying,
@@ -134,6 +128,10 @@ class NowPlayingScreen extends ConsumerWidget {
                 handler.skipToNext();
               },
             ),
+
+          // — Rythme du Terrain (mode sport)
+          const RhythmTerrainWidget(),
+
           ],
         ),
       ),
