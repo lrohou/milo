@@ -38,7 +38,11 @@ class LibraryRepository {
 
     // Fallback Android < 13
     final storage = await Permission.storage.request();
-    return storage.isGranted;
+    
+    // Request photos for artwork on Android 13+
+    await Permission.photos.request();
+
+    return storage.isGranted || await Permission.audio.isGranted;
   }
 
   TrackModel _mapSong(SongModel song) {

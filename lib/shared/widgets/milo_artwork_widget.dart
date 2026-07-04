@@ -58,6 +58,8 @@ class MiloArtworkWidget extends StatelessWidget {
         child: QueryArtworkWidget(
           id: parsedId,
           type: ArtworkType.AUDIO,
+          format: ArtworkFormat.JPEG,
+          keepOldArtwork: true,
           artworkFit: BoxFit.cover,
           artworkBorder: BorderRadius.zero,
           nullArtworkWidget: fallback,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:audio_service/audio_service.dart';
 import 'package:milo/core/providers/audio_providers.dart';
 import 'package:milo/core/theme/app_colors.dart';
 
@@ -24,8 +25,16 @@ class NowPlayingScreen extends ConsumerWidget {
     final isPlaying = playbackAsync.valueOrNull?.playing ?? false;
 
     return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
+      child: NotificationListener<ScrollUpdateNotification>(
+        onNotification: (notification) {
+          if (notification.metrics.pixels < -50) {
+            ref.read(isPlayerExpandedProvider.notifier).state = false;
+            return true;
+          }
+          return false;
+        },
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
@@ -43,9 +52,10 @@ class NowPlayingScreen extends ConsumerWidget {
                               icon: Icon(isEnabled ? Icons.shuffle_on_rounded : Icons.shuffle_rounded, color: AppColors.cream),
                               onPressed: () async {
                                 HapticFeedback.selectionClick();
-                                await handler.player.setShuffleModeEnabled(!isEnabled);
-                                if (!isEnabled) {
-                                  await handler.player.shuffle();
+                                if (isEnabled) {
+                                  await handler.setShuffleMode(AudioServiceShuffleMode.none);
+                                } else {
+                                  await handler.setShuffleMode(AudioServiceShuffleMode.all);
                                 }
                               },
                             );
@@ -126,6 +136,7 @@ class NowPlayingScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
       ),
     );
   }
