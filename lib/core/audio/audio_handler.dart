@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
@@ -10,12 +11,28 @@ import 'package:milo/shared/models/track_model.dart';
 class MiloAudioHandler extends BaseAudioHandler
     with QueueHandler, SeekHandler {
   MiloAudioHandler() {
+    _initPrefs();
     _player.playbackEventStream.listen(_broadcastState);
     _player.processingStateStream.listen((state) {
       if (state == ProcessingState.completed) {
         skipToNext();
       }
     });
+  }
+
+  SharedPreferences? _prefs;
+
+  Future<void> _initPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+  }
+
+  Future<void> _saveState() async {
+    if (_prefs == null) return;
+    if (currentTrack != null) {
+      await _prefs!.setString('last_track_id', currentTrack!.id);
+    }
+    await _prefs!.setInt('last_position_ms', _player.position.inMilliseconds);
+    await _prefs!.setBool('last_shuffle_mode', _isShuffleEnabled);
   }
 
   final AudioPlayer _player = AudioPlayer();
@@ -138,12 +155,14 @@ class MiloAudioHandler extends BaseAudioHandler
   @override
   Future<void> pause() async {
     await _player.pause();
+    await _saveState();
     playbackState.add(_buildState(false));
   }
 
   @override
   Future<void> stop() async {
     stopTerrainRhythmMode();
+    await _saveState();
     await _player.stop();
     await super.stop();
   }
@@ -237,6 +256,7 @@ class MiloAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> onTaskRemoved() async {
+    await _saveState();
     await stop();
     await super.onTaskRemoved();
   }

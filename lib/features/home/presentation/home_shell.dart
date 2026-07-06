@@ -13,6 +13,10 @@ import 'package:milo/features/wake_kick/presentation/wake_kick_screen.dart';
 import 'package:milo/core/providers/audio_providers.dart';
 import 'package:milo/shared/widgets/glass_card.dart';
 import 'package:milo/features/player/presentation/widgets/player_overlay.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:audio_service/audio_service.dart';
+import 'package:milo/features/stats/presentation/stats_screen.dart';
+import 'package:milo/features/stats/providers/stats_provider.dart';
 
 /// Coquille de navigation principale Milo.
 class HomeShell extends ConsumerStatefulWidget {
@@ -50,7 +54,28 @@ class _HomeShellState extends ConsumerState<HomeShell> {
     final library = await ref.read(libraryProvider.future);
     if (library.isNotEmpty && mounted) {
       final handler = ref.read(audioHandlerProvider);
-      await handler.loadQueue(library);
+      
+      // Init stats listener
+      ref.read(statsProvider);
+
+      final prefs = await SharedPreferences.getInstance();
+      final lastTrackId = prefs.getString('last_track_id');
+      final lastPositionMs = prefs.getInt('last_position_ms') ?? 0;
+      final lastShuffle = prefs.getBool('last_shuffle_mode') ?? false;
+
+      int startIndex = 0;
+      if (lastTrackId != null) {
+        final index = library.indexWhere((t) => t.id == lastTrackId);
+        if (index != -1) startIndex = index;
+      }
+
+      await handler.loadQueue(library, startIndex: startIndex);
+      if (lastPositionMs > 0) {
+        await handler.seek(Duration(milliseconds: lastPositionMs));
+      }
+      if (lastShuffle) {
+        await handler.setShuffleMode(AudioServiceShuffleMode.all);
+      }
     }
   }
 
@@ -106,6 +131,12 @@ class _HomeShellState extends ConsumerState<HomeShell> {
           currentIndex: _index,
           onTap: (i) {
             HapticFeedback.selectionClick();
+            
+            // Réduire le lecteur si on change d'onglet
+            if (ref.read(isPlayerExpandedProvider)) {
+              ref.read(isPlayerExpandedProvider.notifier).state = false;
+            }
+
             _pageController.animateToPage(
               i,
               duration: const Duration(milliseconds: 300),
@@ -151,6 +182,12 @@ class _ModesHub extends StatelessWidget {
         Icons.alarm_rounded,
         const WakeKickScreen(),
         'Réveil intelligent',
+      ),
+      (
+        'Récapitulatif du mois',
+        Icons.bar_chart_rounded,
+        const StatsScreen(),
+        'Vos statistiques d\'écoute',
       ),
     ];
 

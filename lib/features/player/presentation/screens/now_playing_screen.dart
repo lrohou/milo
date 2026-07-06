@@ -6,6 +6,7 @@ import 'package:audio_service/audio_service.dart';
 import 'package:milo/core/providers/audio_providers.dart';
 import 'package:milo/core/theme/app_colors.dart';
 
+import 'package:milo/features/likes/providers/likes_provider.dart';
 import 'package:milo/features/mood_avatars/widgets/dynamic_milo_avatar.dart';
 import 'package:milo/features/player/presentation/widgets/player_overlay.dart';
 import 'package:milo/features/rhythm_terrain/presentation/rhythm_terrain_widget.dart';
@@ -34,107 +35,149 @@ class NowPlayingScreen extends ConsumerWidget {
           return false;
         },
         child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(parent: AlwaysScrollableScrollPhysics()),
+          physics: const BouncingScrollPhysics(
+              parent: AlwaysScrollableScrollPhysics()),
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    const DynamicMiloAvatar(size: 64),
-                    Row(
-                      children: [
-                        StreamBuilder<bool>(
-                          stream: handler.player.shuffleModeEnabledStream,
-                          builder: (context, snapshot) {
-                            final isEnabled = snapshot.data ?? false;
-                            return IconButton(
-                              icon: Icon(isEnabled ? Icons.shuffle_on_rounded : Icons.shuffle_rounded, color: AppColors.cream),
-                              onPressed: () async {
-                                HapticFeedback.selectionClick();
-                                if (isEnabled) {
-                                  await handler.setShuffleMode(AudioServiceShuffleMode.none);
-                                } else {
-                                  await handler.setShuffleMode(AudioServiceShuffleMode.all);
-                                }
-                              },
-                            );
-                          },
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.queue_music_rounded, color: AppColors.cream),
-                          onPressed: () => _showQueue(context, handler),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.cream),
-                          onPressed: () {
-                            ref.read(isPlayerExpandedProvider.notifier).state = false;
-                          },
-                        ),
-                      ],
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const DynamicMiloAvatar(size: 64),
+                  Row(
+                    children: [
+                      StreamBuilder<bool>(
+                        stream: handler.player.shuffleModeEnabledStream,
+                        builder: (context, snapshot) {
+                          final isEnabled = snapshot.data ?? false;
+                          return IconButton(
+                            icon: Icon(
+                              isEnabled
+                                  ? Icons.shuffle_on_rounded
+                                  : Icons.shuffle_rounded,
+                              color: AppColors.cream,
+                            ),
+                            onPressed: () async {
+                              HapticFeedback.selectionClick();
+                              if (isEnabled) {
+                                await handler.setShuffleMode(
+                                    AudioServiceShuffleMode.none);
+                              } else {
+                                await handler.setShuffleMode(
+                                    AudioServiceShuffleMode.all);
+                              }
+                            },
+                          );
+                        },
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.queue_music_rounded,
+                            color: AppColors.cream),
+                        onPressed: () => _showQueue(context, handler),
+                      ),
+                      IconButton(
+                        icon: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: AppColors.cream),
+                        onPressed: () {
+                          ref.read(isPlayerExpandedProvider.notifier).state =
+                              false;
+                        },
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+
+              // — Infos morceau
+              if (media != null) ...[
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 24),
+                    child: GestureDetector(
+                      onHorizontalDragEnd: (details) {
+                        if (details.primaryVelocity == null) return;
+                        if (details.primaryVelocity! < -300) {
+                          HapticFeedback.lightImpact();
+                          handler.skipToNext();
+                        } else if (details.primaryVelocity! > 300) {
+                          HapticFeedback.lightImpact();
+                          handler.skipToPrevious();
+                        }
+                      },
+                      child: MiloArtworkWidget(
+                          id: media.id, size: 280, borderRadius: 24),
                     ),
+                  ),
+                ),
+
+                // — Titre défilant + bouton Like
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 36,
+                        child: _MarqueeTitle(
+                          text: media.title,
+                          style: Theme.of(context)
+                              .textTheme
+                              .headlineMedium!,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    _LikeButton(trackId: media.id),
                   ],
                 ),
-            const SizedBox(height: 24),
-
-            // — Infos morceau
-            if (media != null) ...[
-              Center(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 24),
-                  child: MiloArtworkWidget(id: media.id, size: 280, borderRadius: 24),
+                const SizedBox(height: 4),
+                Text(
+                  media.artist ?? 'Artiste inconnu',
+                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: AppColors.cream.withValues(alpha: 0.7),
+                      ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
+              ] else
+                Text(
+                  'Aucun morceau',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+
+              const SizedBox(height: 24),
+
+              // — Seek bar (barre de progression)
+              _SeekBar(handler: handler),
+
+              const SizedBox(height: 32),
+
+              // — Contrôles lecture
+              _PlaybackControls(
+                isPlaying: isPlaying,
+                onPlayPause: () {
+                  HapticFeedback.mediumImpact();
+                  isPlaying ? handler.pause() : handler.play();
+                },
+                onPrevious: () {
+                  HapticFeedback.lightImpact();
+                  handler.skipToPrevious();
+                },
+                onNext: () {
+                  HapticFeedback.lightImpact();
+                  handler.skipToNext();
+                },
               ),
-              Text(
-                media.title,
-                style: Theme.of(context).textTheme.headlineMedium,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                media.artist ?? 'Artiste inconnu',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: AppColors.cream.withValues(alpha: 0.7),
-                    ),
-              ),
-            ] else
-              Text(
-                'Aucun morceau',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
 
-            const SizedBox(height: 24),
+              // — Espacement entre contrôles et Rythme du Terrain
+              const SizedBox(height: 40),
 
-            // — Seek bar (barre de progression)
-            _SeekBar(handler: handler),
-
-            const SizedBox(height: 32),
-
-            // — Contrôles lecture
-            _PlaybackControls(
-              isPlaying: isPlaying,
-              onPlayPause: () {
-                HapticFeedback.mediumImpact();
-                isPlaying ? handler.pause() : handler.play();
-              },
-              onPrevious: () {
-                HapticFeedback.lightImpact();
-                handler.skipToPrevious();
-              },
-              onNext: () {
-                HapticFeedback.lightImpact();
-                handler.skipToNext();
-              },
-            ),
-
-          // — Rythme du Terrain (mode sport)
-          const RhythmTerrainWidget(),
-
-          ],
+              // — Rythme du Terrain (mode sport)
+              const RhythmTerrainWidget(),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -143,7 +186,8 @@ class NowPlayingScreen extends ConsumerWidget {
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.backgroundSurface,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
       builder: (ctx) => Column(
         children: [
           const SizedBox(height: 12),
@@ -156,22 +200,34 @@ class NowPlayingScreen extends ConsumerWidget {
             ),
           ),
           const SizedBox(height: 12),
-          Text('File d\'attente', style: Theme.of(context).textTheme.titleLarge),
+          Text("File d'attente",
+              style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 12),
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               itemCount: handler.tracks.length,
               itemBuilder: (context, index) {
                 final track = handler.tracks[index];
                 final isPlaying = index == handler.currentIndex;
                 return ListTile(
                   leading: Icon(
-                    isPlaying ? Icons.play_arrow_rounded : Icons.music_note_rounded,
-                    color: isPlaying ? AppColors.yellowVivid : AppColors.cream,
+                    isPlaying
+                        ? Icons.play_arrow_rounded
+                        : Icons.music_note_rounded,
+                    color: isPlaying
+                        ? AppColors.yellowVivid
+                        : AppColors.cream,
                   ),
-                  title: Text(track.title, style: TextStyle(color: isPlaying ? AppColors.yellowVivid : AppColors.cream)),
-                  subtitle: Text(track.artist, style: TextStyle(color: AppColors.cream.withValues(alpha: 0.6))),
+                  title: Text(track.title,
+                      style: TextStyle(
+                          color: isPlaying
+                              ? AppColors.yellowVivid
+                              : AppColors.cream)),
+                  subtitle: Text(track.artist,
+                      style: TextStyle(
+                          color: AppColors.cream.withValues(alpha: 0.6))),
                   onTap: () {
                     handler.skipToQueueItem(index);
                     Navigator.pop(ctx);
@@ -186,7 +242,115 @@ class NowPlayingScreen extends ConsumerWidget {
   }
 }
 
-/// Barre de progression avec position et durée.
+// ─── Like Button ────────────────────────────────────────────────────────────
+
+class _LikeButton extends ConsumerWidget {
+  const _LikeButton({required this.trackId});
+  final String trackId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final liked = ref.watch(likesProvider).contains(trackId);
+    return IconButton(
+      icon: Icon(
+        liked ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+        color: liked ? AppColors.error : AppColors.cream,
+        size: 28,
+      ),
+      onPressed: () {
+        HapticFeedback.selectionClick();
+        ref.read(likesProvider.notifier).toggleLike(trackId);
+      },
+    );
+  }
+}
+
+// ─── Marquee Title (custom, no dependency) ──────────────────────────────────
+
+class _MarqueeTitle extends StatefulWidget {
+  const _MarqueeTitle({required this.text, required this.style});
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  State<_MarqueeTitle> createState() => _MarqueeTitleState();
+}
+
+class _MarqueeTitleState extends State<_MarqueeTitle> {
+  late ScrollController _scrollController;
+  bool _needsScroll = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAndScroll());
+  }
+
+  @override
+  void didUpdateWidget(_MarqueeTitle oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _scrollController.jumpTo(0);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _checkAndScroll());
+    }
+  }
+
+  void _checkAndScroll() {
+    if (!mounted || !_scrollController.hasClients) return;
+    _needsScroll = _scrollController.position.maxScrollExtent > 0;
+    if (_needsScroll) {
+      _startScrolling();
+    }
+  }
+
+  Future<void> _startScrolling() async {
+    while (mounted && _scrollController.hasClients && _needsScroll) {
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted || !_scrollController.hasClients) return;
+      await _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: Duration(
+          milliseconds:
+              (_scrollController.position.maxScrollExtent * 30).toInt(),
+        ),
+        curve: Curves.linear,
+      );
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted || !_scrollController.hasClients) return;
+      await _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      child: Text(
+        widget.text,
+        style: widget.style,
+        maxLines: 1,
+        softWrap: false,
+      ),
+    );
+  }
+}
+
+// ─── Seek Bar ───────────────────────────────────────────────────────────────
+
 class _SeekBar extends StatelessWidget {
   const _SeekBar({required this.handler});
 
@@ -201,12 +365,12 @@ class _SeekBar extends StatelessWidget {
         final duration =
             handler.player.duration ?? const Duration(seconds: 1);
         final progress = duration.inMilliseconds > 0
-            ? (position.inMilliseconds / duration.inMilliseconds).clamp(0.0, 1.0)
+            ? (position.inMilliseconds / duration.inMilliseconds)
+                .clamp(0.0, 1.0)
             : 0.0;
 
         return Column(
           children: [
-            // Barre de progression néo-brutaliste
             GestureDetector(
               onTapDown: (details) {
                 HapticFeedback.selectionClick();
@@ -224,7 +388,8 @@ class _SeekBar extends StatelessWidget {
                 final box = context.findRenderObject() as RenderBox?;
                 if (box != null) {
                   final ratio =
-                      (details.localPosition.dx / box.size.width).clamp(0.0, 1.0);
+                      (details.localPosition.dx / box.size.width)
+                          .clamp(0.0, 1.0);
                   final seekPos = Duration(
                     milliseconds:
                         (ratio * duration.inMilliseconds).round(),
@@ -237,7 +402,8 @@ class _SeekBar extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.backgroundSurface,
                   borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: AppColors.border, width: 2.5),
+                  border:
+                      Border.all(color: AppColors.border, width: 2.5),
                 ),
                 child: Stack(
                   children: [
@@ -246,13 +412,15 @@ class _SeekBar extends StatelessWidget {
                       child: Container(
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [AppColors.yellowGold, AppColors.yellowVivid],
+                            colors: [
+                              AppColors.yellowGold,
+                              AppColors.yellowVivid,
+                            ],
                           ),
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                     ),
-                    // Thumb
                     Align(
                       alignment: Alignment(progress * 2 - 1, 0),
                       child: Container(
@@ -279,7 +447,6 @@ class _SeekBar extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 8),
-            // Temps position / durée
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -305,11 +472,15 @@ class _SeekBar extends StatelessWidget {
   }
 
   String _formatDuration(Duration d) {
-    final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    final minutes =
+        d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds =
+        d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$minutes:$seconds';
   }
 }
+
+// ─── Playback Controls ──────────────────────────────────────────────────────
 
 class _PlaybackControls extends StatelessWidget {
   const _PlaybackControls({
@@ -329,10 +500,13 @@ class _PlaybackControls extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _ControlButton(icon: Icons.skip_previous_rounded, onTap: onPrevious),
+        _ControlButton(
+            icon: Icons.skip_previous_rounded, onTap: onPrevious),
         const SizedBox(width: 24),
         _ControlButton(
-          icon: isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+          icon: isPlaying
+              ? Icons.pause_rounded
+              : Icons.play_arrow_rounded,
           size: 72,
           filled: true,
           onTap: onPlayPause,
@@ -344,7 +518,8 @@ class _PlaybackControls extends StatelessWidget {
               duration: 300.ms,
             ),
         const SizedBox(width: 24),
-        _ControlButton(icon: Icons.skip_next_rounded, onTap: onNext),
+        _ControlButton(
+            icon: Icons.skip_next_rounded, onTap: onNext),
       ],
     );
   }
@@ -371,7 +546,9 @@ class _ControlButton extends StatelessWidget {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: filled ? AppColors.yellowVivid : AppColors.backgroundSurface,
+          color: filled
+              ? AppColors.yellowVivid
+              : AppColors.backgroundSurface,
           shape: BoxShape.circle,
           border: Border.all(color: AppColors.border, width: 3),
           boxShadow: filled

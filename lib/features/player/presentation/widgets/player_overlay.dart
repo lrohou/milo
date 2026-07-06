@@ -18,33 +18,51 @@ class PlayerOverlay extends ConsumerWidget {
 
     if (media == null) return const SizedBox.shrink();
 
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeOutCubic,
-      width: double.infinity,
-      height: isExpanded ? MediaQuery.of(context).size.height : 80,
-      child: GestureDetector(
-        onTap: () {
-          if (!isExpanded) ref.read(isPlayerExpandedProvider.notifier).state = true;
-        },
-        onVerticalDragUpdate: (details) {
-          if (details.delta.dy > 5 && isExpanded) {
-            ref.read(isPlayerExpandedProvider.notifier).state = false;
-          } else if (details.delta.dy < -5 && !isExpanded) {
-            ref.read(isPlayerExpandedProvider.notifier).state = true;
-          }
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            color: AppColors.backgroundSurface,
-            borderRadius: isExpanded ? BorderRadius.zero : const BorderRadius.vertical(top: Radius.circular(20)),
-            border: const Border(top: BorderSide(color: AppColors.border, width: 2)),
-          ),
-          child: SingleChildScrollView(
-            physics: const NeverScrollableScrollPhysics(),
-            child: SizedBox(
-              height: isExpanded ? MediaQuery.of(context).size.height : 80,
-              child: isExpanded ? const NowPlayingScreen() : const MiniPlayer(),
+    return PopScope(
+      canPop: !isExpanded,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop && isExpanded) {
+          ref.read(isPlayerExpandedProvider.notifier).state = false;
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+        width: double.infinity,
+        height: isExpanded ? MediaQuery.of(context).size.height : 80,
+        child: GestureDetector(
+          onTap: () {
+            if (!isExpanded) {
+              ref.read(isPlayerExpandedProvider.notifier).state = true;
+            }
+          },
+          onVerticalDragUpdate: (details) {
+            if (details.delta.dy > 5 && isExpanded) {
+              ref.read(isPlayerExpandedProvider.notifier).state = false;
+            } else if (details.delta.dy < -5 && !isExpanded) {
+              ref.read(isPlayerExpandedProvider.notifier).state = true;
+            }
+          },
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.backgroundSurface,
+              borderRadius: isExpanded
+                  ? BorderRadius.zero
+                  : const BorderRadius.vertical(top: Radius.circular(20)),
+              border: const Border(
+                top: BorderSide(color: AppColors.border, width: 2),
+              ),
+            ),
+            child: SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              child: SizedBox(
+                height: isExpanded
+                    ? MediaQuery.of(context).size.height
+                    : 80,
+                child: isExpanded
+                    ? const NowPlayingScreen()
+                    : const MiniPlayer(),
+              ),
             ),
           ),
         ),
@@ -76,11 +94,13 @@ class MiniPlayer extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(
-                  media?.title ?? 'Aucun morceau',
-                  style: Theme.of(context).textTheme.titleLarge,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                // Marquee-style scrolling title in mini player
+                SizedBox(
+                  height: 24,
+                  child: _MarqueeText(
+                    text: media?.title ?? 'Aucun morceau',
+                    style: Theme.of(context).textTheme.titleLarge!,
+                  ),
                 ),
                 Text(
                   media?.artist ?? '—',
@@ -92,7 +112,8 @@ class MiniPlayer extends ConsumerWidget {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.skip_previous_rounded, color: AppColors.cream, size: 32),
+            icon: const Icon(Icons.skip_previous_rounded,
+                color: AppColors.cream, size: 32),
             onPressed: () => handler.skipToPrevious(),
           ),
           IconButton(
@@ -110,10 +131,96 @@ class MiniPlayer extends ConsumerWidget {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.skip_next_rounded, color: AppColors.cream, size: 32),
+            icon: const Icon(Icons.skip_next_rounded,
+                color: AppColors.cream, size: 32),
             onPressed: () => handler.skipToNext(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Widget texte défilant custom (pas de dépendance externe).
+class _MarqueeText extends StatefulWidget {
+  const _MarqueeText({required this.text, required this.style});
+
+  final String text;
+  final TextStyle style;
+
+  @override
+  State<_MarqueeText> createState() => _MarqueeTextState();
+}
+
+class _MarqueeTextState extends State<_MarqueeText>
+    with SingleTickerProviderStateMixin {
+  late ScrollController _scrollController;
+  bool _needsScroll = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAndScroll());
+  }
+
+  @override
+  void didUpdateWidget(_MarqueeText oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _scrollController.jumpTo(0);
+      WidgetsBinding.instance.addPostFrameCallback((_) => _checkAndScroll());
+    }
+  }
+
+  void _checkAndScroll() {
+    if (!mounted || !_scrollController.hasClients) return;
+    _needsScroll =
+        _scrollController.position.maxScrollExtent > 0;
+    if (_needsScroll) {
+      _startScrolling();
+    }
+  }
+
+  Future<void> _startScrolling() async {
+    while (mounted && _scrollController.hasClients && _needsScroll) {
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted || !_scrollController.hasClients) return;
+      await _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: Duration(
+          milliseconds:
+              (_scrollController.position.maxScrollExtent * 30).toInt(),
+        ),
+        curve: Curves.linear,
+      );
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted || !_scrollController.hasClients) return;
+      await _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOut,
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      controller: _scrollController,
+      scrollDirection: Axis.horizontal,
+      physics: const NeverScrollableScrollPhysics(),
+      child: Text(
+        widget.text,
+        style: widget.style,
+        maxLines: 1,
+        softWrap: false,
       ),
     );
   }
