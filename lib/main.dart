@@ -27,6 +27,9 @@ Future<void> main() async {
 
     // Initialisation du handler audio avec notification persistante
     handler = await initAudioService();
+
+    // Synchroniser le widget écran d'accueil avec l'état de lecture
+    await MiloWidgetService.init(handler);
   } catch (e, st) {
     initError = '$e\n$st';
     debugPrint('Erreur init audio: $e');

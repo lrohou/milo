@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:milo/core/theme/app_colors.dart';
+import 'package:milo/features/dab_radio/presentation/dab_radio_screen.dart';
 import 'package:milo/shared/widgets/glass_card.dart';
 
 class AccountSettingsScreen extends ConsumerWidget {
@@ -53,6 +54,19 @@ class AccountSettingsScreen extends ConsumerWidget {
             title: 'Thème de l\'application',
             subtitle: 'Dark mode activé par défaut',
             onTap: () {},
+          ),
+          _buildSettingTile(
+            icon: Icons.radio_rounded,
+            title: 'Radio DAB+',
+            subtitle: 'Écouter les stations françaises en direct',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const DabRadioScreen(),
+                ),
+              );
+            },
           ),
           _buildSettingTile(
             icon: Icons.storage_rounded,

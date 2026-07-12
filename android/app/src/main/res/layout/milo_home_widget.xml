@@ -1,61 +1,100 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:id="@+id/widget_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@drawable/widget_background"
-    android:gravity="center_vertical"
-    android:orientation="horizontal"
-    android:padding="12dp">
+    android:padding="8dp">
 
-    <ImageView
-        android:id="@+id/widget_artwork"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:background="@drawable/widget_play_button"
-        android:contentDescription="Milo"
-        android:padding="10dp"
-        android:src="@drawable/ic_notification"
-        android:tint="@color/milo_background" />
+    <!-- Ombre néo-brutaliste -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginTop="6dp"
+        android:layout_marginStart="6dp"
+        android:background="@drawable/widget_shadow" />
 
+    <!-- Conteneur Principal -->
     <LinearLayout
-        android:layout_width="0dp"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:layout_weight="1"
-        android:orientation="vertical">
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_marginBottom="6dp"
+        android:layout_marginEnd="6dp"
+        android:background="@drawable/widget_background"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:padding="12dp">
 
-        <TextView
-            android:id="@+id/widget_title"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:ellipsize="marquee"
-            android:marqueeRepeatLimit="marquee_forever"
-            android:singleLine="true"
-            android:text="Milo"
-            android:textColor="@color/milo_cream"
-            android:textSize="14sp"
-            android:textStyle="bold" />
+        <ImageView
+            android:id="@+id/widget_artwork"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/widget_play_button"
+            android:contentDescription="Milo"
+            android:padding="10dp"
+            android:src="@drawable/ic_notification"
+            android:tint="@color/milo_background" />
 
-        <TextView
-            android:id="@+id/widget_artist"
-            android:layout_width="match_parent"
+        <LinearLayout
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:ellipsize="end"
-            android:maxLines="1"
-            android:text="Lecteur local"
-            android:textColor="@color/milo_cream"
-            android:textSize="12sp" />
+            android:layout_marginStart="12dp"
+            android:layout_weight="1"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/widget_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="marquee"
+                android:marqueeRepeatLimit="marquee_forever"
+                android:singleLine="true"
+                android:text="Milo"
+                android:textColor="@color/milo_background"
+                android:textSize="16sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/widget_artist"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:text="Lecteur local"
+                android:textColor="#CC111111"
+                android:textSize="13sp" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/widget_skip_previous"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Précédent"
+            android:padding="8dp"
+            android:src="@android:drawable/ic_media_previous"
+            android:tint="@color/milo_background" />
+
+        <ImageButton
+            android:id="@+id/widget_play_pause"
+            android:layout_width="44dp"
+            android:layout_height="44dp"
+            android:layout_marginStart="4dp"
+            android:layout_marginEnd="4dp"
+            android:background="@drawable/widget_play_button"
+            android:contentDescription="Lecture"
+            android:padding="10dp"
+            android:src="@android:drawable/ic_media_play"
+            android:tint="@color/milo_background" />
+
+        <ImageButton
+            android:id="@+id/widget_skip_next"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:contentDescription="Suivant"
+            android:padding="8dp"
+            android:src="@android:drawable/ic_media_next"
+            android:tint="@color/milo_background" />
+
     </LinearLayout>
-
-    <ImageButton
-        android:id="@+id/widget_play_pause"
-        android:layout_width="40dp"
-        android:layout_height="40dp"
-        android:background="@drawable/widget_play_button"
-        android:contentDescription="Lecture"
-        android:padding="8dp"
-        android:src="@android:drawable/ic_media_play"
-        android:tint="@color/milo_background" />
-
-</LinearLayout>
+</FrameLayout>

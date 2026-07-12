@@ -33,6 +33,7 @@ class MiloHomeWidgetProvider : HomeWidgetProvider() {
                 }
                 setImageViewResource(R.id.widget_play_pause, playPauseIcon)
 
+                // Play/Pause
                 val playPauseUri = Uri.parse("milo://toggle_playback")
                 setOnClickPendingIntent(
                     R.id.widget_play_pause,
@@ -42,6 +43,27 @@ class MiloHomeWidgetProvider : HomeWidgetProvider() {
                     ),
                 )
 
+                // Skip Previous
+                val skipPrevUri = Uri.parse("milo://skip_previous")
+                setOnClickPendingIntent(
+                    R.id.widget_skip_previous,
+                    HomeWidgetBackgroundIntent.getBroadcast(
+                        context,
+                        skipPrevUri,
+                    ),
+                )
+
+                // Skip Next
+                val skipNextUri = Uri.parse("milo://skip_next")
+                setOnClickPendingIntent(
+                    R.id.widget_skip_next,
+                    HomeWidgetBackgroundIntent.getBroadcast(
+                        context,
+                        skipNextUri,
+                    ),
+                )
+
+                // Ouvrir l'app au clic sur le fond du widget
                 val openAppUri = HomeWidgetLaunchIntent.getActivity(
                     context,
                     MainActivity::class.java,

@@ -43,6 +43,7 @@ class MiloAudioHandler extends BaseAudioHandler
   int _currentIndex = 0;
   final List<int> _history = [];
   bool _isShuffleEnabled = false;
+  bool _isRadioMode = false;
 
   /// Stream réactif du morceau en cours (TrackModel).
   final _currentTrackController = StreamController<TrackModel?>.broadcast();
@@ -164,8 +165,16 @@ class MiloAudioHandler extends BaseAudioHandler
   @override
   Future<void> stop() async {
     stopTerrainRhythmMode();
+    _isRadioMode = false;
     await _saveState();
     await _player.stop();
+    // Réinitialiser le mediaItem pour supprimer la notification
+    mediaItem.add(null);
+    playbackState.add(PlaybackState(
+      controls: [],
+      processingState: AudioProcessingState.idle,
+      playing: false,
+    ));
     await super.stop();
   }
 
@@ -263,6 +272,33 @@ class MiloAudioHandler extends BaseAudioHandler
     await super.onTaskRemoved();
   }
 
+  /// Lance la lecture d'une station radio DAB+ en streaming.
+  Future<void> playRadioStation(DabRadioStation station) async {
+    _isRadioMode = true;
+    _tracks.clear();
+    _history.clear();
+    _currentIndex = 0;
+
+    mediaItem.add(
+      MediaItem(
+        id: station.id,
+        title: station.name,
+        artist: '${station.frequency} · ${station.genre}',
+        album: 'Radio DAB+',
+        extras: {'isRadio': true},
+      ),
+    );
+
+    await _player.setAudioSource(
+      AudioSource.uri(Uri.parse(station.streamUrl)),
+    );
+    _currentTrackController.add(null);
+    await play();
+  }
+
+  /// Indique si on est en mode radio.
+  bool get isRadioMode => _isRadioMode;
+
   Future<void> dispose() async {
     await _player.dispose();
     await _currentTrackController.close();
@@ -279,6 +315,7 @@ Future<MiloAudioHandler> initAudioService() async {
       androidNotificationOngoing: true,
       androidStopForegroundOnPause: true,
       androidNotificationIcon: 'mipmap/launcher_icon',
+      androidNotificationColor: 0xFFFEE402, // Jaune vif Milo
     ),
   );
 }
