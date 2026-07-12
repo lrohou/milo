@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="milo_background">#FF111111</color>
+    <color name="milo_surface">#FF1C1C1C</color>
+    <color name="milo_yellow">#FFFEE402</color>
+    <color name="milo_gold">#FFFDCA00</color>
+    <color name="milo_cream">#FFFFFED5</color>
+</resources>

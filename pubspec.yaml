@@ -53,6 +53,9 @@ dependencies:
   screenshot: ^3.0.0
   share_plus: ^13.2.0
 
+  # Widget écran d'accueil
+  home_widget: ^0.7.0
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
