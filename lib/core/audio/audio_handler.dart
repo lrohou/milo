@@ -315,7 +315,6 @@ Future<MiloAudioHandler> initAudioService() async {
       androidNotificationOngoing: true,
       androidStopForegroundOnPause: true,
       androidNotificationIcon: 'mipmap/launcher_icon',
-      androidNotificationColor: 0xFFFEE402, // Jaune vif Milo
     ),
   );
 }
