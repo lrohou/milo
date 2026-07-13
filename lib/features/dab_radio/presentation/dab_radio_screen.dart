@@ -17,12 +17,20 @@ class DabRadioScreen extends ConsumerStatefulWidget {
 }
 
 class _DabRadioScreenState extends ConsumerState<DabRadioScreen> {
-  String? _playingId;
+  String _searchQuery = '';
 
   @override
   Widget build(BuildContext context) {
     final playbackAsync = ref.watch(playbackStateProvider);
     final isPlaying = playbackAsync.valueOrNull?.playing ?? false;
+    final currentTrackAsync = ref.watch(currentTrackProvider);
+    final currentId = currentTrackAsync.valueOrNull?.id;
+
+    final filteredStations = kDabRadioStations.where((station) {
+      final query = _searchQuery.toLowerCase();
+      return station.name.toLowerCase().contains(query) ||
+             station.genre.toLowerCase().contains(query);
+    }).toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -70,9 +78,26 @@ class _DabRadioScreenState extends ConsumerState<DabRadioScreen> {
               .fadeIn(duration: 400.ms)
               .moveY(begin: -10, end: 0),
           const SizedBox(height: 24),
-          ...List.generate(kDabRadioStations.length, (i) {
-            final station = kDabRadioStations[i];
-            final isCurrent = _playingId == station.id;
+          NeoBrutalContainer(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            backgroundColor: AppColors.backgroundSurface,
+            child: TextField(
+              onChanged: (value) => setState(() => _searchQuery = value),
+              decoration: const InputDecoration(
+                hintText: 'Rechercher une radio...',
+                border: InputBorder.none,
+                icon: Icon(Icons.search_rounded),
+              ),
+              style: Theme.of(context).textTheme.bodyLarge,
+            ),
+          )
+              .animate()
+              .fadeIn(delay: 100.ms)
+              .moveY(begin: -10, end: 0),
+          const SizedBox(height: 24),
+          ...List.generate(filteredStations.length, (i) {
+            final station = filteredStations[i];
+            final isCurrent = currentId == station.id;
             final showPlaying = isCurrent && isPlaying;
 
             return Padding(
@@ -152,18 +177,17 @@ class _DabRadioScreenState extends ConsumerState<DabRadioScreen> {
   Future<void> _toggleStation(DabRadioStation station) async {
     HapticFeedback.selectionClick();
     final handler = ref.read(audioHandlerProvider);
+    final currentId = handler.mediaItem.valueOrNull?.id;
 
-    if (_playingId == station.id) {
+    if (currentId == station.id) {
       if (handler.player.playing) {
         await handler.pause();
       } else {
         await handler.play();
       }
-      setState(() {});
       return;
     }
 
-    setState(() => _playingId = station.id);
     await handler.playRadioStation(station);
   }
 }

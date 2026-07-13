@@ -192,6 +192,18 @@ class MiloAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> skipToNext() async {
+    if (_isRadioMode) {
+      final currentId = mediaItem.value?.id;
+      if (currentId != null) {
+        final index = kDabRadioStations.indexWhere((s) => s.id == currentId);
+        if (index != -1) {
+          final nextIndex = (index + 1) % kDabRadioStations.length;
+          await playRadioStation(kDabRadioStations[nextIndex]);
+        }
+      }
+      return;
+    }
+
     if (_tracks.isEmpty) return;
     _history.add(_currentIndex);
     
@@ -211,6 +223,18 @@ class MiloAudioHandler extends BaseAudioHandler
 
   @override
   Future<void> skipToPrevious() async {
+    if (_isRadioMode) {
+      final currentId = mediaItem.value?.id;
+      if (currentId != null) {
+        final index = kDabRadioStations.indexWhere((s) => s.id == currentId);
+        if (index != -1) {
+          final prevIndex = (index - 1 + kDabRadioStations.length) % kDabRadioStations.length;
+          await playRadioStation(kDabRadioStations[prevIndex]);
+        }
+      }
+      return;
+    }
+
     if (_tracks.isEmpty) return;
     
     int prev;
