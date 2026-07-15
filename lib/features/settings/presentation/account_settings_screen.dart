@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:milo/core/theme/app_colors.dart';
+import 'package:milo/features/dab_radio/presentation/open_dab_screen.dart';
 import 'package:milo/features/dab_radio/presentation/dab_radio_screen.dart';
 import 'package:milo/shared/widgets/glass_card.dart';
 
@@ -63,7 +64,7 @@ class AccountSettingsScreen extends ConsumerWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => DabRadioScreen(),
+                  builder: (context) => const OpenDabScreen(),
                 ),
               );
             },
