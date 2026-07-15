@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:milo/core/providers/audio_providers.dart';
 import 'package:milo/core/theme/app_colors.dart';
 import 'package:milo/features/dab_radio/models/dab_radio_station.dart';
-import 'package:milo/features/dab_radio/presentation/dab_radio_categories_screen.dart';
 import 'package:milo/features/dab_radio/presentation/open_dab_screen.dart';
 import 'package:milo/shared/widgets/glass_card.dart';
 import 'package:milo/shared/widgets/neo_brutal_container.dart';
@@ -52,16 +51,6 @@ class _DabRadioScreenState extends ConsumerState<DabRadioScreen> {
               );
             },
             tooltip: 'Open DAB',
-          ),
-          IconButton(
-            icon: const Icon(Icons.category_rounded),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => const DabRadioCategoriesScreen(),
-                ),
-              );
-            },
           ),
         ],
       ),
