@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:milo/core/theme/app_colors.dart';
 import 'package:milo/features/cargo/presentation/cargo_screen.dart';
 import 'package:milo/features/dab_radio/presentation/dab_radio_screen.dart';
+import 'package:milo/features/dab_radio/presentation/open_dab_screen.dart';
 import 'package:milo/features/jukebox/presentation/jukebox_screen.dart';
 import 'package:milo/features/library/presentation/library_screen.dart';
 import 'package:milo/features/library/providers/library_providers.dart';
@@ -193,7 +194,7 @@ class _ModesHub extends StatelessWidget {
       (
         'Radio DAB+',
         Icons.radio_rounded,
-        DabRadioScreen(),
+        const OpenDabScreen(),
         'Stations françaises en direct',
       ),
     ];
