@@ -9,16 +9,16 @@
     <View
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="6dp"
-        android:layout_marginStart="6dp"
+        android:layout_marginTop="4dp"
+        android:layout_marginStart="4dp"
         android:background="@drawable/widget_shadow" />
 
     <!-- Conteneur Principal -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginBottom="6dp"
-        android:layout_marginEnd="6dp"
+        android:layout_marginBottom="4dp"
+        android:layout_marginEnd="4dp"
         android:background="@drawable/widget_background"
         android:gravity="center_vertical"
         android:orientation="horizontal"
@@ -49,7 +49,7 @@
                 android:marqueeRepeatLimit="marquee_forever"
                 android:singleLine="true"
                 android:text="Milo"
-                android:textColor="@color/milo_background"
+                android:textColor="@color/milo_cream"
                 android:textSize="16sp"
                 android:textStyle="bold" />
 
@@ -60,7 +60,8 @@
                 android:ellipsize="end"
                 android:maxLines="1"
                 android:text="Lecteur local"
-                android:textColor="#CC111111"
+                android:textColor="@color/milo_cream"
+                android:alpha="0.85"
                 android:textSize="13sp" />
         </LinearLayout>
 
@@ -68,11 +69,11 @@
             android:id="@+id/widget_skip_previous"
             android:layout_width="38dp"
             android:layout_height="38dp"
-            android:background="@android:color/transparent"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="Précédent"
             android:padding="8dp"
             android:src="@android:drawable/ic_media_previous"
-            android:tint="@color/milo_background" />
+            android:tint="@color/milo_cream" />
 
         <ImageButton
             android:id="@+id/widget_play_pause"
@@ -90,11 +91,11 @@
             android:id="@+id/widget_skip_next"
             android:layout_width="38dp"
             android:layout_height="38dp"
-            android:background="@android:color/transparent"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
             android:contentDescription="Suivant"
             android:padding="8dp"
             android:src="@android:drawable/ic_media_next"
-            android:tint="@color/milo_background" />
+            android:tint="@color/milo_cream" />
 
     </LinearLayout>
 </FrameLayout>
