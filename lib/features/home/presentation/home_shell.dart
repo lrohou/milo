@@ -193,7 +193,7 @@ class _ModesHub extends StatelessWidget {
       (
         'Radio DAB+',
         Icons.radio_rounded,
-        const DabRadioScreen(),
+        DabRadioScreen(),
         'Stations françaises en direct',
       ),
     ];
