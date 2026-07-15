@@ -55,6 +55,7 @@ dependencies:
 
   # Widget écran d'accueil
   home_widget: ^0.7.0
+  http: ^1.2.0
 
 dev_dependencies:
   flutter_test:
