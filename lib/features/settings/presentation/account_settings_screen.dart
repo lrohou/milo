@@ -63,7 +63,7 @@ class AccountSettingsScreen extends ConsumerWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => DabRadioScreen(),
+                  builder: (context) => const DabRadioScreen(),
                 ),
               );
             },
