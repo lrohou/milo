@@ -12,7 +12,7 @@ abstract final class AppColors {
 
   // Accents néo-brutalistes
   static const Color yellowVivid = Color(0xFFFEE402);
-  static const Color yellowGold = Color(0xFFFDCA00);
+  static const Color yellowGold = Color(0xFFF5B800);
 
   // Glassmorphisme
   static const Color glassFill = Color(0x33FFFED5);

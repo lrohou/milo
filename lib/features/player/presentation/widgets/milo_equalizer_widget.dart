@@ -1,5 +1,3 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -277,7 +275,7 @@ class _LabelChip extends StatelessWidget {
   }
 }
 
-/// Peint la tête de Milo avec oreilles déformables + effets de glow.
+/// Peint la tête de Milo (âne) avec oreilles déformables + effets de glow.
 class _MiloEarsPainter extends CustomPainter {
   _MiloEarsPainter({
     required this.bass,
@@ -297,151 +295,190 @@ class _MiloEarsPainter extends CustomPainter {
   final double glowIntensity;
   final bool isInteracting;
 
+  // Couleurs de l'âne
+  static const _donkeyGrey = Color(0xFF8E8E8E);
+  static const _donkeyDarkGrey = Color(0xFF5A5A5A);
+  static const _donkeyLightGrey = Color(0xFFB5B5B5);
+  static const _donkeyMuzzle = Color(0xFFD4C5B0);
+  static const _donkeyInnerEar = Color(0xFFE8C9D4);
+  static const _donkeyNose = Color(0xFF3D3D3D);
+
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2 + 20);
-    final headRadius = size.width * 0.22;
+    final center = Offset(size.width / 2, size.height / 2 + 25);
+    final headW = size.width * 0.28;
+    final headH = size.width * 0.34;
 
-    // Glow derrière les oreilles actives
-    if (glowIntensity > 0) {
-      // Glow oreille gauche (basses)
-      if (bass.abs() > 0.05) {
-        canvas.drawCircle(
-          Offset(center.dx - headRadius * 1.1, center.dy - headRadius * 0.9),
-          headRadius * 0.7 * leftEarStretch,
-          Paint()
-            ..color = AppColors.yellowGold.withValues(alpha: glowIntensity * 0.3)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20),
-        );
-      }
-      // Glow oreille droite (aigus)
-      if (treble.abs() > 0.05) {
-        canvas.drawCircle(
-          Offset(center.dx + headRadius * 1.1, center.dy - headRadius * 0.9),
-          headRadius * 0.7 * rightEarStretch,
-          Paint()
-            ..color = AppColors.yellowVivid.withValues(alpha: glowIntensity * 0.3)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20),
-        );
-      }
-    }
-
-    // Oreille gauche (basses)
-    _drawEar(
-      canvas,
-      Offset(center.dx - headRadius * 1.1, center.dy - headRadius * 0.9),
-      headRadius * 0.55,
-      headRadius * 0.9 * leftEarStretch,
-      AppColors.yellowGold,
-      bass.abs() > 0.05 && isInteracting,
-    );
-
-    // Oreille droite (aigus)
-    _drawEar(
-      canvas,
-      Offset(center.dx + headRadius * 1.1, center.dy - headRadius * 0.9),
-      headRadius * 0.55,
-      headRadius * 0.9 * rightEarStretch,
-      AppColors.yellowVivid,
-      treble.abs() > 0.05 && isInteracting,
-    );
-
-    // Tête
-    final headPaint = Paint()
-      ..color = AppColors.cream
-      ..style = PaintingStyle.fill;
     final borderPaint = Paint()
       ..color = AppColors.border
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 4;
+      ..strokeWidth = 3.5;
 
-    canvas.drawCircle(center, headRadius, headPaint);
-    canvas.drawCircle(center, headRadius, borderPaint);
-
-    // Museau
-    final snoutRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: Offset(center.dx, center.dy + headRadius * 0.35),
-        width: headRadius * 1.1,
-        height: headRadius * 0.65,
-      ),
-      const Radius.circular(16),
-    );
-    canvas.drawRRect(snoutRect, headPaint);
-    canvas.drawRRect(snoutRect, borderPaint);
-
-    // Narines
-    final nostrilPaint = Paint()..color = AppColors.backgroundSurface;
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(center.dx - headRadius * 0.15, center.dy + headRadius * 0.38),
-        width: 8,
-        height: 6,
-      ),
-      nostrilPaint,
-    );
-    canvas.drawOval(
-      Rect.fromCenter(
-        center: Offset(center.dx + headRadius * 0.15, center.dy + headRadius * 0.38),
-        width: 8,
-        height: 6,
-      ),
-      nostrilPaint,
-    );
-
-    // Yeux joyeux (expressifs selon l'interaction)
-    if (isInteracting) {
-      _drawExcitedEye(canvas, Offset(center.dx - headRadius * 0.35, center.dy - 10));
-      _drawExcitedEye(canvas, Offset(center.dx + headRadius * 0.35, center.dy - 10));
-    } else {
-      _drawEye(canvas, Offset(center.dx - headRadius * 0.35, center.dy - 10));
-      _drawEye(canvas, Offset(center.dx + headRadius * 0.35, center.dy - 10));
+    // ─── Glow derrière les oreilles actives ───
+    if (glowIntensity > 0) {
+      if (bass.abs() > 0.05) {
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: Offset(center.dx - headW * 0.7, center.dy - headH * 1.2),
+            width: headW * 0.7,
+            height: headH * 0.9 * leftEarStretch,
+          ),
+          Paint()
+            ..color = AppColors.yellowGold.withValues(alpha: glowIntensity * 0.35)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 25),
+        );
+      }
+      if (treble.abs() > 0.05) {
+        canvas.drawOval(
+          Rect.fromCenter(
+            center: Offset(center.dx + headW * 0.7, center.dy - headH * 1.2),
+            width: headW * 0.7,
+            height: headH * 0.9 * rightEarStretch,
+          ),
+          Paint()
+            ..color = AppColors.yellowVivid.withValues(alpha: glowIntensity * 0.35)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 25),
+        );
+      }
     }
 
-    // Sourire
+    // ─── Oreille gauche (longue, pointue, d'âne) ───
+    _drawDonkeyEar(
+      canvas,
+      center: Offset(center.dx - headW * 0.55, center.dy - headH * 0.75),
+      width: headW * 0.35,
+      height: headH * 1.0 * leftEarStretch,
+      tiltAngle: -0.2,
+      isActive: bass.abs() > 0.05 && isInteracting,
+      isLeft: true,
+    );
+
+    // ─── Oreille droite ───
+    _drawDonkeyEar(
+      canvas,
+      center: Offset(center.dx + headW * 0.55, center.dy - headH * 0.75),
+      width: headW * 0.35,
+      height: headH * 1.0 * rightEarStretch,
+      tiltAngle: 0.2,
+      isActive: treble.abs() > 0.05 && isInteracting,
+      isLeft: false,
+    );
+
+    // ─── Crinière (entre les oreilles) ───
+    final manePaint = Paint()
+      ..color = _donkeyDarkGrey
+      ..style = PaintingStyle.fill;
+    for (var i = 0; i < 7; i++) {
+      final x = center.dx + (i - 3) * headW * 0.12;
+      final y = center.dy - headH * 0.65 - (3 - (i - 3).abs()) * 6;
+      final tuftPath = Path()
+        ..moveTo(x - 4, y + 12)
+        ..quadraticBezierTo(x, y - 8, x + 4, y + 12);
+      canvas.drawPath(tuftPath, manePaint..strokeWidth = 5);
+      canvas.drawPath(
+        tuftPath,
+        Paint()
+          ..color = _donkeyDarkGrey
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 5
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+
+    // ─── Tête (ovale allongée verticalement) ───
+    final headRect = Rect.fromCenter(
+      center: center,
+      width: headW * 1.8,
+      height: headH * 1.7,
+    );
+    final headRRect = RRect.fromRectAndRadius(headRect, Radius.circular(headW * 0.8));
+    canvas.drawRRect(headRRect, Paint()..color = _donkeyGrey);
+    canvas.drawRRect(headRRect, borderPaint);
+
+    // ─── Zones claires autour des yeux ───
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(center.dx - headW * 0.35, center.dy - headH * 0.15),
+        width: headW * 0.55,
+        height: headH * 0.45,
+      ),
+      Paint()..color = _donkeyLightGrey,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(center.dx + headW * 0.35, center.dy - headH * 0.15),
+        width: headW * 0.55,
+        height: headH * 0.45,
+      ),
+      Paint()..color = _donkeyLightGrey,
+    );
+
+    // ─── Museau (plus grand, allongé, couleur claire) ───
+    final muzzleRect = RRect.fromRectAndRadius(
+      Rect.fromCenter(
+        center: Offset(center.dx, center.dy + headH * 0.55),
+        width: headW * 1.4,
+        height: headH * 0.85,
+      ),
+      Radius.circular(headW * 0.6),
+    );
+    canvas.drawRRect(muzzleRect, Paint()..color = _donkeyMuzzle);
+    canvas.drawRRect(muzzleRect, borderPaint);
+
+    // ─── Narines (ovales, plus réalistes) ───
+    final nostrilPaint = Paint()..color = _donkeyNose;
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(center.dx - headW * 0.25, center.dy + headH * 0.58),
+        width: 12,
+        height: 16,
+      ),
+      nostrilPaint,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(
+        center: Offset(center.dx + headW * 0.25, center.dy + headH * 0.58),
+        width: 12,
+        height: 16,
+      ),
+      nostrilPaint,
+    );
+
+    // ─── Yeux ───
+    if (isInteracting) {
+      _drawExcitedEye(canvas, Offset(center.dx - headW * 0.35, center.dy - headH * 0.15));
+      _drawExcitedEye(canvas, Offset(center.dx + headW * 0.35, center.dy - headH * 0.15));
+    } else {
+      _drawEye(canvas, Offset(center.dx - headW * 0.35, center.dy - headH * 0.15));
+      _drawEye(canvas, Offset(center.dx + headW * 0.35, center.dy - headH * 0.15));
+    }
+
+    // ─── Sourire ───
     final smilePath = Path()
-      ..moveTo(center.dx - headRadius * 0.3, center.dy + headRadius * 0.15)
+      ..moveTo(center.dx - headW * 0.35, center.dy + headH * 0.38)
       ..quadraticBezierTo(
         center.dx,
-        center.dy + headRadius * (isInteracting ? 0.55 : 0.45),
-        center.dx + headRadius * 0.3,
-        center.dy + headRadius * 0.15,
+        center.dy + headH * (isInteracting ? 0.62 : 0.52),
+        center.dx + headW * 0.35,
+        center.dy + headH * 0.38,
       );
     canvas.drawPath(
       smilePath,
       Paint()
-        ..color = AppColors.border
+        ..color = _donkeyNose
         ..style = PaintingStyle.stroke
         ..strokeWidth = 3
         ..strokeCap = StrokeCap.round,
     );
 
-    // Crinière
-    for (var i = 0; i < 5; i++) {
-      final angle = math.pi + (i - 2) * 0.35;
-      final start = Offset(
-        center.dx + math.cos(angle) * headRadius * 0.8,
-        center.dy + math.sin(angle) * headRadius * 0.5 - headRadius * 0.5,
-      );
-      canvas.drawLine(
-        start,
-        start + Offset(math.cos(angle) * 18, math.sin(angle) * 18 - 8),
-        Paint()
-          ..color = AppColors.yellowVivid
-          ..strokeWidth = 4
-          ..strokeCap = StrokeCap.round,
-      );
-    }
-
-    // Indication de zone d'interaction
+    // ─── Labels d'interaction ───
     if (isInteracting) {
-      // Indicateur gauche (BASS)
       final leftLabel = TextPainter(
         text: const TextSpan(
           text: 'BASS',
           style: TextStyle(
             color: AppColors.yellowGold,
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.5,
           ),
@@ -450,17 +487,16 @@ class _MiloEarsPainter extends CustomPainter {
       )..layout();
       leftLabel.paint(
         canvas,
-        Offset(center.dx - headRadius * 1.1 - leftLabel.width / 2,
-            center.dy - headRadius * 1.8),
+        Offset(center.dx - headW * 0.7 - leftLabel.width / 2,
+            center.dy - headH * 1.7),
       );
 
-      // Indicateur droite (TREBLE)
       final rightLabel = TextPainter(
         text: const TextSpan(
           text: 'TREBLE',
           style: TextStyle(
             color: AppColors.yellowVivid,
-            fontSize: 10,
+            fontSize: 11,
             fontWeight: FontWeight.w800,
             letterSpacing: 1.5,
           ),
@@ -469,62 +505,103 @@ class _MiloEarsPainter extends CustomPainter {
       )..layout();
       rightLabel.paint(
         canvas,
-        Offset(center.dx + headRadius * 1.1 - rightLabel.width / 2,
-            center.dy - headRadius * 1.8),
+        Offset(center.dx + headW * 0.7 - rightLabel.width / 2,
+            center.dy - headH * 1.7),
       );
     }
   }
 
-  void _drawEar(Canvas canvas, Offset center, double width, double height,
-      Color fill, bool active) {
-    final earRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(center: center, width: width, height: height),
-      Radius.circular(width / 2),
-    );
-    canvas.drawRRect(
-      earRect,
-      Paint()..color = fill,
-    );
-    canvas.drawRRect(
-      earRect,
+  /// Dessine une oreille d'âne : longue, pointue, avec intérieur rose.
+  void _drawDonkeyEar(
+    Canvas canvas, {
+    required Offset center,
+    required double width,
+    required double height,
+    required double tiltAngle,
+    required bool isActive,
+    required bool isLeft,
+  }) {
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(tiltAngle);
+
+    // Forme d'oreille pointue (path)
+    final earPath = Path()
+      ..moveTo(-width / 2, height * 0.1)
+      ..quadraticBezierTo(-width * 0.4, -height * 0.35, 0, -height / 2)
+      ..quadraticBezierTo(width * 0.4, -height * 0.35, width / 2, height * 0.1)
+      ..quadraticBezierTo(width * 0.3, height * 0.25, 0, height * 0.3)
+      ..quadraticBezierTo(-width * 0.3, height * 0.25, -width / 2, height * 0.1)
+      ..close();
+
+    // Oreille extérieure
+    canvas.drawPath(earPath, Paint()..color = _donkeyGrey);
+    canvas.drawPath(
+      earPath,
       Paint()
-        ..color = active ? AppColors.yellowVivid : AppColors.border
+        ..color = isActive ? AppColors.yellowVivid : AppColors.border
         ..style = PaintingStyle.stroke
-        ..strokeWidth = active ? 4 : 3,
+        ..strokeWidth = isActive ? 4 : 3,
     );
 
-    // Intérieur de l'oreille
-    final innerRect = RRect.fromRectAndRadius(
-      Rect.fromCenter(
-        center: Offset(center.dx, center.dy + 2),
-        width: width * 0.5,
-        height: height * 0.6,
-      ),
-      Radius.circular(width / 3),
-    );
-    canvas.drawRRect(
-      innerRect,
-      Paint()..color = fill.withValues(alpha: 0.6),
-    );
+    // Intérieur rose de l'oreille
+    final innerPath = Path()
+      ..moveTo(-width * 0.25, height * 0.0)
+      ..quadraticBezierTo(-width * 0.2, -height * 0.22, 0, -height * 0.32)
+      ..quadraticBezierTo(width * 0.2, -height * 0.22, width * 0.25, height * 0.0)
+      ..quadraticBezierTo(width * 0.15, height * 0.12, 0, height * 0.15)
+      ..quadraticBezierTo(-width * 0.15, height * 0.12, -width * 0.25, height * 0.0)
+      ..close();
+
+    canvas.drawPath(innerPath, Paint()..color = _donkeyInnerEar);
+
+    canvas.restore();
   }
 
   void _drawEye(Canvas canvas, Offset center) {
-    canvas.drawCircle(center, 8, Paint()..color = AppColors.border);
+    // Blanc de l'œil
+    canvas.drawOval(
+      Rect.fromCenter(center: center, width: 20, height: 18),
+      Paint()..color = Colors.white,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(center: center, width: 20, height: 18),
+      Paint()
+        ..color = AppColors.border
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+    // Pupille
+    canvas.drawCircle(center + const Offset(1, 1), 7, Paint()..color = _donkeyNose);
+    // Reflet
     canvas.drawCircle(
-      center + const Offset(2, -2),
+      center + const Offset(3, -2),
       3,
-      Paint()..color = AppColors.cream,
+      Paint()..color = Colors.white,
     );
   }
 
   void _drawExcitedEye(Canvas canvas, Offset center) {
-    // Étoiles dans les yeux quand on interagit
-    canvas.drawCircle(center, 10, Paint()..color = AppColors.border);
-    canvas.drawCircle(center, 7, Paint()..color = AppColors.yellowVivid);
+    // Blanc de l'œil (plus grand)
+    canvas.drawOval(
+      Rect.fromCenter(center: center, width: 24, height: 22),
+      Paint()..color = Colors.white,
+    );
+    canvas.drawOval(
+      Rect.fromCenter(center: center, width: 24, height: 22),
+      Paint()
+        ..color = AppColors.border
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2,
+    );
+    // Pupille étoile (dorée)
+    canvas.drawCircle(center, 9, Paint()..color = _donkeyNose);
+    canvas.drawCircle(center, 6, Paint()..color = AppColors.yellowVivid);
+    // Reflet
     canvas.drawCircle(
-      center + const Offset(2, -2),
+      center + const Offset(3, -3),
       3,
-      Paint()..color = AppColors.cream,
+      Paint()..color = Colors.white,
     );
   }
 

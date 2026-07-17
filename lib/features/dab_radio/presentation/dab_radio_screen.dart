@@ -754,7 +754,9 @@ class _OpenDabScreenState extends ConsumerState<OpenDabScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Stack(
+        children: [
+          Column(
         children: [
           // Barre de recherche (même style que la bibliothèque)
           Padding(
@@ -882,6 +884,123 @@ class _OpenDabScreenState extends ConsumerState<OpenDabScreen> {
                       ),
           ),
         ],
+      ),
+          // Barre de contrôle audio en bas
+          const Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _DabAudioControlBar(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Barre de contrôle audio affichée en bas de l'écran DAB Radio.
+class _DabAudioControlBar extends ConsumerWidget {
+  const _DabAudioControlBar();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final mediaAsync = ref.watch(currentTrackProvider);
+    final playbackAsync = ref.watch(playbackStateProvider);
+    final handler = ref.watch(audioHandlerProvider);
+
+    final media = mediaAsync.valueOrNull;
+    final isPlaying = playbackAsync.valueOrNull?.playing ?? false;
+    final isRadio = media?.extras?['isRadio'] == true;
+
+    if (media == null || !isRadio) return const SizedBox.shrink();
+
+    final radioEmoji = media.extras?['emoji'] as String? ?? '📻';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.backgroundSurface,
+        border: const Border(
+          top: BorderSide(color: AppColors.border, width: 2),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Row(
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: AppColors.backgroundDeep,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.border, width: 2),
+              ),
+              child: Center(
+                child: Text(radioEmoji, style: const TextStyle(fontSize: 22)),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    media.title,
+                    style: const TextStyle(
+                      color: AppColors.cream,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  Text(
+                    media.artist ?? 'Radio DAB+',
+                    style: TextStyle(
+                      color: AppColors.cream.withValues(alpha: 0.6),
+                      fontSize: 12,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.skip_previous_rounded,
+                  color: AppColors.cream, size: 28),
+              onPressed: () => handler.skipToPrevious(),
+            ),
+            IconButton(
+              icon: Icon(
+                isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                color: AppColors.yellowVivid,
+                size: 32,
+              ),
+              onPressed: () {
+                if (isPlaying) {
+                  handler.pause();
+                } else {
+                  handler.play();
+                }
+              },
+            ),
+            IconButton(
+              icon: const Icon(Icons.skip_next_rounded,
+                  color: AppColors.cream, size: 28),
+              onPressed: () => handler.skipToNext(),
+            ),
+          ],
+        ),
       ),
     );
   }

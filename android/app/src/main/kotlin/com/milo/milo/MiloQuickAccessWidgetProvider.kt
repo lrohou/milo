@@ -19,8 +19,8 @@ class MiloQuickAccessWidgetProvider : HomeWidgetProvider() {
     ) {
         appWidgetIds.forEach { widgetId ->
             val views = RemoteViews(context.packageName, R.layout.milo_quick_access_widget).apply {
-                val title = widgetData.getString("title", "Milo") ?: "Milo"
-                val artist = widgetData.getString("artist", "Lecteur local") ?: "Lecteur local"
+                val title = widgetData.getString("title", null) ?: "Milo"
+                val artist = widgetData.getString("artist", null) ?: "Lecteur local"
                 val isPlaying = widgetData.getBoolean("is_playing", false)
 
                 setTextViewText(R.id.quick_widget_title, title)

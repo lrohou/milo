@@ -18,6 +18,8 @@ class MiloWidgetService {
     handler.currentTrackStream.listen((_) => _sync(handler));
     handler.playbackState.listen((_) => _sync(handler));
     handler.mediaItem.listen((_) => _sync(handler));
+
+    // Sync initial pour que les widgets affichent quelque chose immédiatement
     await _sync(handler);
   }
 

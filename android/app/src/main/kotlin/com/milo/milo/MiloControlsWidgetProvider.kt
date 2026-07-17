@@ -19,7 +19,7 @@ class MiloControlsWidgetProvider : HomeWidgetProvider() {
     ) {
         appWidgetIds.forEach { widgetId ->
             val views = RemoteViews(context.packageName, R.layout.milo_controls_widget).apply {
-                val title = widgetData.getString("title", "Milo") ?: "Milo"
+                val title = widgetData.getString("title", null) ?: "Milo"
                 val isPlaying = widgetData.getBoolean("is_playing", false)
 
                 setTextViewText(R.id.controls_widget_title, title)

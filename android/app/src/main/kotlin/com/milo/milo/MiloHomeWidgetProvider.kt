@@ -19,8 +19,8 @@ class MiloHomeWidgetProvider : HomeWidgetProvider() {
     ) {
         appWidgetIds.forEach { widgetId ->
             val views = RemoteViews(context.packageName, R.layout.milo_home_widget).apply {
-                val title = widgetData.getString("title", "Milo") ?: "Milo"
-                val artist = widgetData.getString("artist", "Lecteur local") ?: "Lecteur local"
+                val title = widgetData.getString("title", null) ?: "Milo"
+                val artist = widgetData.getString("artist", null) ?: "Lecteur local"
                 val isPlaying = widgetData.getBoolean("is_playing", false)
 
                 setTextViewText(R.id.widget_title, title)

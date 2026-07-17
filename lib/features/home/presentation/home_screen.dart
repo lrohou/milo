@@ -3,7 +3,11 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:milo/core/providers/audio_providers.dart';
 import 'package:milo/core/theme/app_colors.dart';
+import 'package:milo/features/dab_radio/models/dab_radio_station.dart';
+import 'package:milo/features/dab_radio/presentation/dab_radio_screen.dart';
+import 'package:milo/features/dab_radio/providers/radio_stats_provider.dart';
 import 'package:milo/features/home/presentation/widgets/mood_selector_widget.dart';
+import 'package:milo/features/library/presentation/library_screen.dart';
 import 'package:milo/features/likes/providers/likes_provider.dart';
 import 'package:milo/features/library/providers/library_providers.dart';
 import 'package:milo/features/player/presentation/widgets/milo_equalizer_widget.dart';
@@ -26,6 +30,8 @@ class HomeScreen extends ConsumerWidget {
     final libraryAsync = ref.watch(libraryProvider);
     final likedIds = ref.watch(likesProvider);
     final handler = ref.watch(audioHandlerProvider);
+    final radioStats = ref.watch(radioStatsProvider);
+    final savedRadios = ref.watch(openDabStationsProvider);
 
     return SafeArea(
       child: ListView(
@@ -39,25 +45,47 @@ class HomeScreen extends ConsumerWidget {
                 'Bonjour !',
                 style: Theme.of(context).textTheme.displaySmall,
               ),
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.backgroundSurface,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.border, width: 2),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.person_rounded,
-                      color: AppColors.yellowVivid),
-                  onPressed: () {
-                    HapticFeedback.selectionClick();
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              const AccountSettingsScreen()),
-                    );
-                  },
-                ),
+              Row(
+                children: [
+                  // Bouton popup Égaliseur "Oreilles d'Âne"
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.backgroundSurface,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.border, width: 2),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.equalizer_rounded,
+                          color: AppColors.yellowVivid),
+                      tooltip: 'Égaliseur DJ',
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        _showEqualizerPopup(context);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: AppColors.backgroundSurface,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: AppColors.border, width: 2),
+                    ),
+                    child: IconButton(
+                      icon: const Icon(Icons.person_rounded,
+                          color: AppColors.yellowVivid),
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) =>
+                                  const AccountSettingsScreen()),
+                        );
+                      },
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -88,9 +116,28 @@ class HomeScreen extends ConsumerWidget {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      'Musiques du moment',
-                      style: Theme.of(context).textTheme.headlineMedium,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Musiques du moment',
+                          style: Theme.of(context).textTheme.headlineMedium,
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const LibraryScreen()),
+                            );
+                          },
+                          child: const Text(
+                            'Voir plus',
+                            style: TextStyle(color: AppColors.yellowVivid),
+                          ),
+                        ),
+                      ],
                     ),
                     const SizedBox(height: 12),
                     SizedBox(
@@ -150,17 +197,12 @@ class HomeScreen extends ConsumerWidget {
               },
             ),
 
+          // ─── Radios DAB+ les plus écoutées ─────────────────────────
+          if (radioStats.isNotEmpty && savedRadios.isNotEmpty)
+            _buildTopRadiosSection(context, ref, radioStats, savedRadios, handler),
+
           // Humeurs
           const MoodSelectorWidget(),
-          const SizedBox(height: 32),
-
-          // Égaliseur
-          Text(
-            'Égaliseur',
-            style: Theme.of(context).textTheme.headlineMedium,
-          ),
-          const SizedBox(height: 16),
-          const MiloEqualizerWidget(),
           const SizedBox(height: 32),
 
           // ─── Coups de cœur ─────────────────────────────────────────
@@ -177,14 +219,33 @@ class HomeScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Icon(Icons.favorite_rounded,
-                            color: AppColors.error, size: 24),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Coups de cœur',
-                          style:
-                              Theme.of(context).textTheme.headlineMedium,
+                        Row(
+                          children: [
+                            const Icon(Icons.favorite_rounded,
+                                color: AppColors.error, size: 24),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Coups de cœur',
+                              style:
+                                  Theme.of(context).textTheme.headlineMedium,
+                            ),
+                          ],
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            HapticFeedback.selectionClick();
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => const LibraryScreen()),
+                            );
+                          },
+                          child: const Text(
+                            'Voir plus',
+                            style: TextStyle(color: AppColors.yellowVivid),
+                          ),
                         ),
                       ],
                     ),
@@ -283,6 +344,171 @@ class HomeScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showEqualizerPopup(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.backgroundSurface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.75,
+        minChildSize: 0.5,
+        maxChildSize: 0.92,
+        expand: false,
+        builder: (ctx, scrollController) => SingleChildScrollView(
+          controller: scrollController,
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          child: Column(
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: AppColors.cream.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Égaliseur — Oreilles d\'Âne',
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      color: AppColors.cream,
+                    ),
+              ),
+              const SizedBox(height: 24),
+              const MiloEqualizerWidget(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTopRadiosSection(
+    BuildContext context,
+    WidgetRef ref,
+    Map<String, int> radioStats,
+    List<DabRadioStation> savedRadios,
+    dynamic handler,
+  ) {
+    final sorted = radioStats.entries.toList()
+      ..sort((a, b) => b.value.compareTo(a.value));
+    final topIds = sorted.take(6).map((e) => e.key).toList();
+    final topStations = topIds
+        .map((id) {
+          try {
+            return savedRadios.firstWhere((s) => s.id == id);
+          } catch (_) {
+            // Chercher dans les stations par défaut
+            try {
+              return kDabRadioStations.firstWhere((s) => s.id == id);
+            } catch (_) {
+              return null;
+            }
+          }
+        })
+        .where((s) => s != null)
+        .toList();
+
+    if (topStations.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                const Text('📻', style: TextStyle(fontSize: 20)),
+                const SizedBox(width: 8),
+                Text(
+                  'Radios favorites',
+                  style: Theme.of(context).textTheme.headlineMedium,
+                ),
+              ],
+            ),
+            TextButton(
+              onPressed: () {
+                HapticFeedback.selectionClick();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const OpenDabScreen()),
+                );
+              },
+              child: const Text(
+                'Voir plus',
+                style: TextStyle(color: AppColors.yellowVivid),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 110,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: topStations.length,
+            separatorBuilder: (_, _a) => const SizedBox(width: 12),
+            itemBuilder: (context, i) {
+              final station = topStations[i]!;
+              return GestureDetector(
+                onTap: () {
+                  HapticFeedback.selectionClick();
+                  handler.playRadioStation(station, savedRadios.isNotEmpty ? savedRadios : [station]);
+                },
+                child: SizedBox(
+                  width: 90,
+                  child: Column(
+                    children: [
+                      Container(
+                        width: 64,
+                        height: 64,
+                        decoration: BoxDecoration(
+                          color: AppColors.backgroundSurface,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: AppColors.border, width: 2),
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          station.logoEmoji,
+                          style: const TextStyle(fontSize: 28),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        station.name,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                      ),
+                      Text(
+                        '${radioStats[station.id]}x',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: AppColors.yellowGold),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
     );
   }
 
