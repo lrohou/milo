@@ -39,8 +39,7 @@
                 android:background="@drawable/widget_play_button"
                 android:contentDescription="Milo"
                 android:padding="10dp"
-                android:src="@drawable/ic_notification"
-                android:tint="@color/milo_background" />
+                android:src="@drawable/ic_notification" />
 
             <!-- Infos -->
             <LinearLayout
@@ -81,8 +80,7 @@
                 android:layout_height="32dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Précédent"
-                android:src="@android:drawable/ic_media_previous"
-                android:tint="@color/milo_cream" />
+                android:src="@android:drawable/ic_media_previous" />
 
             <ImageButton
                 android:id="@+id/quick_widget_play_pause"
@@ -93,8 +91,7 @@
                 android:background="@drawable/widget_play_button"
                 android:contentDescription="Lecture"
                 android:padding="8dp"
-                android:src="@android:drawable/ic_media_play"
-                android:tint="@color/milo_background" />
+                android:src="@android:drawable/ic_media_play" />
 
             <ImageButton
                 android:id="@+id/quick_widget_skip_next"
@@ -102,8 +99,7 @@
                 android:layout_height="32dp"
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Suivant"
-                android:src="@android:drawable/ic_media_next"
-                android:tint="@color/milo_cream" />
+                android:src="@android:drawable/ic_media_next" />
         </LinearLayout>
 
         <!-- Séparateur -->
@@ -137,8 +133,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:contentDescription="Bibliothèque"
-                    android:src="@android:drawable/ic_menu_gallery"
-                    android:tint="@color/milo_yellow" />
+                    android:src="@android:drawable/ic_menu_gallery" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -164,8 +159,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:contentDescription="Radio"
-                    android:src="@android:drawable/ic_btn_speak_now"
-                    android:tint="@color/milo_yellow" />
+                    android:src="@android:drawable/ic_btn_speak_now" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -191,8 +185,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:contentDescription="Aléatoire"
-                    android:src="@android:drawable/ic_menu_rotate"
-                    android:tint="@color/milo_yellow" />
+                    android:src="@android:drawable/ic_menu_rotate" />
 
                 <TextView
                     android:layout_width="wrap_content"
@@ -218,8 +211,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:contentDescription="Favoris"
-                    android:src="@android:drawable/btn_star_big_on"
-                    android:tint="@color/milo_yellow" />
+                    android:src="@android:drawable/btn_star_big_on" />
 
                 <TextView
                     android:layout_width="wrap_content"

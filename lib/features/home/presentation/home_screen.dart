@@ -36,6 +36,7 @@ class HomeScreen extends ConsumerWidget {
     return SafeArea(
       child: ListView(
         padding: const EdgeInsets.fromLTRB(24, 16, 24, 160),
+        cacheExtent: 500,
         children: [
           // En-tête Accueil
           Row(
@@ -88,6 +89,49 @@ class HomeScreen extends ConsumerWidget {
                 ],
               ),
             ],
+          ),
+          const SizedBox(height: 24),
+
+          // En-tête Playlists (en haut)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Playlists',
+                style: Theme.of(context).textTheme.headlineMedium,
+              ),
+              NeoBrutalButton(
+                label: 'Nouvelle',
+                icon: Icons.add_rounded,
+                onPressed: () =>
+                    _showCreatePlaylistDialog(context, ref),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Liste des Playlists
+          playlistsAsync.when(
+            loading: () => const Center(
+              child: CircularProgressIndicator(
+                  color: AppColors.yellowVivid),
+            ),
+            error: (e, _) => Center(child: Text('Erreur: $e')),
+            data: (playlists) {
+              if (playlists.isEmpty) {
+                return const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(16.0),
+                    child: Text('Aucune playlist créée.'),
+                  ),
+                );
+              }
+              return Column(
+                children: playlists
+                    .map((p) => _PlaylistCard(playlist: p))
+                    .toList(),
+              );
+            },
           ),
           const SizedBox(height: 24),
 
@@ -300,48 +344,6 @@ class HomeScreen extends ConsumerWidget {
                 );
               },
             ),
-
-          // En-tête Playlists
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Playlists',
-                style: Theme.of(context).textTheme.headlineMedium,
-              ),
-              NeoBrutalButton(
-                label: 'Nouvelle',
-                icon: Icons.add_rounded,
-                onPressed: () =>
-                    _showCreatePlaylistDialog(context, ref),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-
-          // Liste des Playlists
-          playlistsAsync.when(
-            loading: () => const Center(
-              child: CircularProgressIndicator(
-                  color: AppColors.yellowVivid),
-            ),
-            error: (e, _) => Center(child: Text('Erreur: $e')),
-            data: (playlists) {
-              if (playlists.isEmpty) {
-                return const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(32.0),
-                    child: Text('Aucune playlist créée.'),
-                  ),
-                );
-              }
-              return Column(
-                children: playlists
-                    .map((p) => _PlaylistCard(playlist: p))
-                    .toList(),
-              );
-            },
-          ),
         ],
       ),
     );

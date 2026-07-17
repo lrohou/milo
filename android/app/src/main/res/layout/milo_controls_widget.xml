@@ -30,8 +30,7 @@
             android:layout_width="32dp"
             android:layout_height="32dp"
             android:contentDescription="Milo"
-            android:src="@drawable/ic_notification"
-            android:tint="@color/milo_yellow" />
+            android:src="@drawable/ic_notification" />
 
         <TextView
             android:id="@+id/controls_widget_title"
@@ -62,8 +61,7 @@
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Précédent"
                 android:padding="8dp"
-                android:src="@android:drawable/ic_media_previous"
-                android:tint="@color/milo_cream" />
+                android:src="@android:drawable/ic_media_previous" />
 
             <ImageButton
                 android:id="@+id/controls_widget_play_pause"
@@ -74,8 +72,7 @@
                 android:background="@drawable/widget_play_button"
                 android:contentDescription="Lecture"
                 android:padding="10dp"
-                android:src="@android:drawable/ic_media_play"
-                android:tint="@color/milo_background" />
+                android:src="@android:drawable/ic_media_play" />
 
             <ImageButton
                 android:id="@+id/controls_widget_skip_next"
@@ -84,8 +81,7 @@
                 android:background="?android:attr/selectableItemBackgroundBorderless"
                 android:contentDescription="Suivant"
                 android:padding="8dp"
-                android:src="@android:drawable/ic_media_next"
-                android:tint="@color/milo_cream" />
+                android:src="@android:drawable/ic_media_next" />
 
         </LinearLayout>
 
