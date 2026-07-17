@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="widget_description">Contrôlez la lecture Milo depuis l\'écran d\'accueil</string>
+    <string name="widget_controls_description">Contrôles de lecture compacts Milo</string>
+    <string name="widget_quick_access_description">Lecture et raccourcis rapides Milo</string>
 </resources>

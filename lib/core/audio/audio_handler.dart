@@ -44,6 +44,8 @@ class MiloAudioHandler extends BaseAudioHandler
   final List<int> _history = [];
   bool _isShuffleEnabled = false;
   bool _isRadioMode = false;
+  List<DabRadioStation> _radioStations = [];
+  int _currentRadioIndex = 0;
 
   /// Stream réactif du morceau en cours (TrackModel).
   final _currentTrackController = StreamController<TrackModel?>.broadcast();
@@ -193,13 +195,9 @@ class MiloAudioHandler extends BaseAudioHandler
   @override
   Future<void> skipToNext() async {
     if (_isRadioMode) {
-      final currentId = mediaItem.value?.id;
-      if (currentId != null) {
-        final index = kDabRadioStations.indexWhere((s) => s.id == currentId);
-        if (index != -1) {
-          final nextIndex = (index + 1) % kDabRadioStations.length;
-          await playRadioStation(kDabRadioStations[nextIndex]);
-        }
+      if (_radioStations.isNotEmpty) {
+        _currentRadioIndex = (_currentRadioIndex + 1) % _radioStations.length;
+        await _playRadioAtIndex(_currentRadioIndex);
       }
       return;
     }
@@ -224,13 +222,9 @@ class MiloAudioHandler extends BaseAudioHandler
   @override
   Future<void> skipToPrevious() async {
     if (_isRadioMode) {
-      final currentId = mediaItem.value?.id;
-      if (currentId != null) {
-        final index = kDabRadioStations.indexWhere((s) => s.id == currentId);
-        if (index != -1) {
-          final prevIndex = (index - 1 + kDabRadioStations.length) % kDabRadioStations.length;
-          await playRadioStation(kDabRadioStations[prevIndex]);
-        }
+      if (_radioStations.isNotEmpty) {
+        _currentRadioIndex = (_currentRadioIndex - 1 + _radioStations.length) % _radioStations.length;
+        await _playRadioAtIndex(_currentRadioIndex);
       }
       return;
     }
@@ -297,11 +291,32 @@ class MiloAudioHandler extends BaseAudioHandler
   }
 
   /// Lance la lecture d'une station radio DAB+ en streaming.
-  Future<void> playRadioStation(DabRadioStation station) async {
+  /// [stations] est la liste des stations pour la navigation précédent/suivant.
+  Future<void> playRadioStation(DabRadioStation station, [List<DabRadioStation>? stations]) async {
     _isRadioMode = true;
     _tracks.clear();
     _history.clear();
     _currentIndex = 0;
+    
+    // Mettre à jour la liste des stations pour la navigation
+    if (stations != null && stations.isNotEmpty) {
+      _radioStations = stations;
+      _currentRadioIndex = stations.indexWhere((s) => s.id == station.id);
+      if (_currentRadioIndex == -1) {
+        _currentRadioIndex = 0;
+      }
+    } else {
+      _radioStations = [station];
+      _currentRadioIndex = 0;
+    }
+
+    await _playRadioAtIndex(_currentRadioIndex);
+  }
+
+  /// Joue la radio à l'index donné dans la liste _radioStations.
+  Future<void> _playRadioAtIndex(int index) async {
+    if (index < 0 || index >= _radioStations.length) return;
+    final station = _radioStations[index];
 
     mediaItem.add(
       MediaItem(
@@ -309,7 +324,7 @@ class MiloAudioHandler extends BaseAudioHandler
         title: station.name,
         artist: '${station.frequency} · ${station.genre}',
         album: 'Radio DAB+',
-        extras: {'isRadio': true},
+        extras: {'isRadio': true, 'emoji': station.logoEmoji},
       ),
     );
 
@@ -322,6 +337,13 @@ class MiloAudioHandler extends BaseAudioHandler
 
   /// Indique si on est en mode radio.
   bool get isRadioMode => _isRadioMode;
+
+  /// Retourne la station radio actuelle (si en mode radio).
+  DabRadioStation? get currentRadioStation {
+    if (!_isRadioMode || _radioStations.isEmpty) return null;
+    if (_currentRadioIndex < 0 || _currentRadioIndex >= _radioStations.length) return null;
+    return _radioStations[_currentRadioIndex];
+  }
 
   Future<void> dispose() async {
     await _player.dispose();

@@ -65,7 +65,7 @@
             </intent-filter>
         </receiver>
 
-        <!-- Widget écran d'accueil Milo -->
+        <!-- Widget écran d'accueil Milo - Mini Player -->
         <receiver
             android:name=".MiloHomeWidgetProvider"
             android:exported="true">
@@ -75,6 +75,30 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/milo_home_widget_info" />
+        </receiver>
+
+        <!-- Widget écran d'accueil Milo - Contrôles uniquement -->
+        <receiver
+            android:name=".MiloControlsWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/milo_controls_widget_info" />
+        </receiver>
+
+        <!-- Widget écran d'accueil Milo - Accès rapide -->
+        <receiver
+            android:name=".MiloQuickAccessWidgetProvider"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/milo_quick_access_widget_info" />
         </receiver>
 
         <meta-data

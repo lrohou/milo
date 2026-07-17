@@ -82,12 +82,28 @@ class MiniPlayer extends ConsumerWidget {
 
     final media = mediaAsync.valueOrNull;
     final isPlaying = playbackAsync.valueOrNull?.playing ?? false;
+    final isRadio = media?.extras?['isRadio'] == true;
+    final radioEmoji = media?.extras?['emoji'] as String? ?? '📻';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       child: Row(
         children: [
-          if (media != null) MiloArtworkWidget(id: media.id, size: 48),
+          if (media != null)
+            isRadio
+                ? Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: AppColors.backgroundDeep,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.border, width: 2),
+                    ),
+                    child: Center(
+                      child: Text(radioEmoji, style: const TextStyle(fontSize: 24)),
+                    ),
+                  )
+                : MiloArtworkWidget(id: media.id, size: 48),
           const SizedBox(width: 16),
           Expanded(
             child: Column(

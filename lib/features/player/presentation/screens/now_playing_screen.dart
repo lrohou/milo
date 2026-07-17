@@ -24,6 +24,8 @@ class NowPlayingScreen extends ConsumerWidget {
 
     final media = mediaAsync.valueOrNull;
     final isPlaying = playbackAsync.valueOrNull?.playing ?? false;
+    final isRadio = media?.extras?['isRadio'] == true;
+    final radioEmoji = media?.extras?['emoji'] as String? ?? '📻';
 
     return SafeArea(
       child: NotificationListener<ScrollUpdateNotification>(
@@ -47,35 +49,37 @@ class NowPlayingScreen extends ConsumerWidget {
                   const DynamicMiloAvatar(size: 64),
                   Row(
                     children: [
-                      StreamBuilder<bool>(
-                        stream: handler.player.shuffleModeEnabledStream,
-                        builder: (context, snapshot) {
-                          final isEnabled = snapshot.data ?? false;
-                          return IconButton(
-                            icon: Icon(
-                              isEnabled
-                                  ? Icons.shuffle_on_rounded
-                                  : Icons.shuffle_rounded,
-                              color: AppColors.cream,
-                            ),
-                            onPressed: () async {
-                              HapticFeedback.selectionClick();
-                              if (isEnabled) {
-                                await handler.setShuffleMode(
-                                    AudioServiceShuffleMode.none);
-                              } else {
-                                await handler.setShuffleMode(
-                                    AudioServiceShuffleMode.all);
-                              }
-                            },
-                          );
-                        },
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.queue_music_rounded,
-                            color: AppColors.cream),
-                        onPressed: () => _showQueue(context, handler),
-                      ),
+                      if (!isRadio)
+                        StreamBuilder<bool>(
+                          stream: handler.player.shuffleModeEnabledStream,
+                          builder: (context, snapshot) {
+                            final isEnabled = snapshot.data ?? false;
+                            return IconButton(
+                              icon: Icon(
+                                isEnabled
+                                    ? Icons.shuffle_on_rounded
+                                    : Icons.shuffle_rounded,
+                                color: AppColors.cream,
+                              ),
+                              onPressed: () async {
+                                HapticFeedback.selectionClick();
+                                if (isEnabled) {
+                                  await handler.setShuffleMode(
+                                      AudioServiceShuffleMode.none);
+                                } else {
+                                  await handler.setShuffleMode(
+                                      AudioServiceShuffleMode.all);
+                                }
+                              },
+                            );
+                          },
+                        ),
+                      if (!isRadio)
+                        IconButton(
+                          icon: const Icon(Icons.queue_music_rounded,
+                              color: AppColors.cream),
+                          onPressed: () => _showQueue(context, handler),
+                        ),
                       IconButton(
                         icon: const Icon(
                             Icons.keyboard_arrow_down_rounded,
@@ -91,7 +95,7 @@ class NowPlayingScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 24),
 
-              // — Infos morceau
+              // — Infos morceau ou radio
               if (media != null) ...[
                 Center(
                   child: Padding(
@@ -107,13 +111,33 @@ class NowPlayingScreen extends ConsumerWidget {
                           handler.skipToPrevious();
                         }
                       },
-                      child: MiloArtworkWidget(
-                          id: media.id, size: 280, borderRadius: 24),
+                      child: isRadio
+                          ? Container(
+                              width: 280,
+                              height: 280,
+                              decoration: BoxDecoration(
+                                color: AppColors.backgroundDeep,
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(color: AppColors.border, width: 3),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppColors.yellowVivid.withValues(alpha: 0.2),
+                                    blurRadius: 30,
+                                    spreadRadius: 5,
+                                  ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Text(radioEmoji, style: const TextStyle(fontSize: 120)),
+                              ),
+                            )
+                          : MiloArtworkWidget(
+                              id: media.id, size: 280, borderRadius: 24),
                     ),
                   ),
                 ),
 
-                // — Titre défilant + bouton Like
+                // — Titre défilant + bouton Like (pas de Like pour radio)
                 Row(
                   children: [
                     Expanded(
@@ -128,12 +152,12 @@ class NowPlayingScreen extends ConsumerWidget {
                       ),
                     ),
                     const SizedBox(width: 8),
-                    _LikeButton(trackId: media.id),
+                    if (!isRadio) _LikeButton(trackId: media.id),
                   ],
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  media.artist ?? 'Artiste inconnu',
+                  media.artist ?? (isRadio ? 'Radio DAB+' : 'Artiste inconnu'),
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: AppColors.cream.withValues(alpha: 0.7),
                       ),
@@ -148,8 +172,38 @@ class NowPlayingScreen extends ConsumerWidget {
 
               const SizedBox(height: 24),
 
-              // — Seek bar (barre de progression)
-              _SeekBar(handler: handler),
+              // — Seek bar (barre de progression) - pas pour radio
+              if (!isRadio) _SeekBar(handler: handler),
+              if (isRadio)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: AppColors.glassFill,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.glassBorder),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: isPlaying ? AppColors.success : AppColors.error,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        isPlaying ? 'En direct' : 'Arrêté',
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                          color: AppColors.cream,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
               const SizedBox(height: 32),
 
@@ -173,8 +227,8 @@ class NowPlayingScreen extends ConsumerWidget {
               // — Espacement entre contrôles et Rythme du Terrain
               const SizedBox(height: 40),
 
-              // — Rythme du Terrain (mode sport)
-              const RhythmTerrainWidget(),
+              // — Rythme du Terrain (mode sport) - pas pour radio
+              if (!isRadio) const RhythmTerrainWidget(),
             ],
           ),
         ),
