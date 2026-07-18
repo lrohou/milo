@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -24,7 +26,6 @@ class MiloEqualizerWidget extends ConsumerStatefulWidget {
 
 class _MiloEqualizerWidgetState extends ConsumerState<MiloEqualizerWidget>
     with TickerProviderStateMixin {
-  double _baseScale = 1.0;
   bool _isInteracting = false;
 
   // Valeurs animées avec gravité
@@ -33,14 +34,26 @@ class _MiloEqualizerWidgetState extends ConsumerState<MiloEqualizerWidget>
   double _leftEarVelocity = 0.0;
   double _rightEarVelocity = 0.0;
 
+  // Angle de repos — les oreilles penchent naturellement vers l'avant
+  static const double _restAngleLeft = 0.25;
+  static const double _restAngleRight = -0.25;
+
   late final AnimationController _glowController;
   late final AnimationController _gravityController;
+
+  // Pour le geste unifié (scale)
+  Offset _lastFocalPoint = Offset.zero;
+  double _lastScale = 1.0;
 
   MiloAudioHandler get _handler => ref.read(audioHandlerProvider);
 
   @override
   void initState() {
     super.initState();
+    // Initialiser les oreilles à leur angle de repos
+    _leftEarAngle = _restAngleLeft;
+    _rightEarAngle = _restAngleRight;
+
     _glowController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1200),
@@ -55,24 +68,28 @@ class _MiloEqualizerWidgetState extends ConsumerState<MiloEqualizerWidget>
 
   void _updateGravity() {
     if (!_isInteracting) {
-      // Gravité : retour vers 0 avec bounce
+      // Gravité : retour vers l'angle de repos avec bounce
       const gravity = 0.008;
       const damping = 0.92;
 
-      _leftEarVelocity += -_leftEarAngle * gravity;
+      // Oreille gauche tend vers _restAngleLeft
+      _leftEarVelocity += -(_leftEarAngle - _restAngleLeft) * gravity;
       _leftEarVelocity *= damping;
       _leftEarAngle += _leftEarVelocity;
 
-      _rightEarVelocity += -_rightEarAngle * gravity;
+      // Oreille droite tend vers _restAngleRight
+      _rightEarVelocity += -(_rightEarAngle - _restAngleRight) * gravity;
       _rightEarVelocity *= damping;
       _rightEarAngle += _rightEarVelocity;
 
-      if (_leftEarAngle.abs() < 0.001 && _leftEarVelocity.abs() < 0.001) {
-        _leftEarAngle = 0.0;
+      if ((_leftEarAngle - _restAngleLeft).abs() < 0.001 &&
+          _leftEarVelocity.abs() < 0.001) {
+        _leftEarAngle = _restAngleLeft;
         _leftEarVelocity = 0.0;
       }
-      if (_rightEarAngle.abs() < 0.001 && _rightEarVelocity.abs() < 0.001) {
-        _rightEarAngle = 0.0;
+      if ((_rightEarAngle - _restAngleRight).abs() < 0.001 &&
+          _rightEarVelocity.abs() < 0.001) {
+        _rightEarAngle = _restAngleRight;
         _rightEarVelocity = 0.0;
       }
     }
@@ -95,27 +112,13 @@ class _MiloEqualizerWidgetState extends ConsumerState<MiloEqualizerWidget>
         GlassCard(
           padding: const EdgeInsets.all(24),
           child: SizedBox(
-            height: 300,
+            height: 320,
             width: double.infinity,
+            // Geste unifié : onScale gère à la fois le drag 1 doigt et le pinch 2 doigts
             child: GestureDetector(
-              onVerticalDragStart: (_) =>
-                  setState(() => _isInteracting = true),
-              onVerticalDragUpdate: _onVerticalDrag,
-              onVerticalDragEnd: (details) {
-                // Donner une vélocité de "lâcher" aux oreilles
-                final vel = details.velocity.pixelsPerSecond.dy / 2000;
-                _leftEarVelocity = vel * 0.5;
-                _rightEarVelocity = vel * 0.5;
-                setState(() => _isInteracting = false);
-              },
-              onScaleStart: (details) {
-                _baseScale = 1.0;
-                setState(() => _isInteracting = true);
-              },
+              onScaleStart: _onScaleStart,
               onScaleUpdate: _onScaleUpdate,
-              onScaleEnd: (_) {
-                setState(() => _isInteracting = false);
-              },
+              onScaleEnd: _onScaleEnd,
               child: RepaintBoundary(
                 child: CustomPaint(
                   painter: _MiloEarsPainter(
@@ -175,8 +178,8 @@ class _MiloEqualizerWidgetState extends ConsumerState<MiloEqualizerWidget>
               onPressed: () {
                 HapticFeedback.heavyImpact();
                 _handler.equalizer.resetAll();
-                _leftEarAngle = 0;
-                _rightEarAngle = 0;
+                _leftEarAngle = _restAngleLeft;
+                _rightEarAngle = _restAngleRight;
                 _leftEarVelocity = 0;
                 _rightEarVelocity = 0;
                 ref.read(equalizerStateProvider.notifier).state = _handler.equalizer.state;
@@ -198,24 +201,55 @@ class _MiloEqualizerWidgetState extends ConsumerState<MiloEqualizerWidget>
     );
   }
 
-  Future<void> _onVerticalDrag(DragUpdateDetails details) async {
+  void _onScaleStart(ScaleStartDetails details) {
+    _lastFocalPoint = details.localFocalPoint;
+    _lastScale = 1.0;
+    setState(() => _isInteracting = true);
+  }
+
+  Future<void> _onScaleUpdate(ScaleUpdateDetails details) async {
+    final focalPoint = details.localFocalPoint;
+    final deltaY = focalPoint.dy - _lastFocalPoint.dy;
+    _lastFocalPoint = focalPoint;
+
+    // Si on pince (2 doigts), gérer le pan
+    if ((details.scale - 1.0).abs() > 0.01) {
+      HapticFeedback.lightImpact();
+      try {
+        final panDelta = (details.scale - _lastScale) * 2;
+        _lastScale = details.scale;
+        final pan = (ref.read(equalizerStateProvider).pan + panDelta)
+            .clamp(-1.0, 1.0);
+        await _handler.equalizer.setPan(pan);
+        ref.read(equalizerStateProvider.notifier).state =
+            _handler.equalizer.state;
+      } catch (_) {
+        // Silently handle if audio handler isn't ready
+      }
+      return;
+    }
+
+    // Sinon, drag vertical (1 doigt) → bass ou treble
     HapticFeedback.selectionClick();
-    final delta = -details.delta.dy / 100;
+    // delta positif = doigt vers le bas → diminuer (tirer vers bas = diminuer)
+    // delta négatif = doigt vers le haut → augmenter (tirer vers haut = augmenter)
+    final valueDelta = -deltaY / 100;
 
     try {
       final current = ref.read(equalizerStateProvider);
+      final halfWidth = (context.size?.width ?? 300) / 2;
 
-      if (details.localPosition.dx < MediaQuery.of(context).size.width / 2 - 24) {
+      if (focalPoint.dx < halfWidth) {
         // Oreille gauche → basses
-        _leftEarAngle = (_leftEarAngle + details.delta.dy / 50).clamp(-1.0, 1.0);
-        _leftEarVelocity = details.delta.dy / 200;
-        final bass = (current.bass + delta).clamp(-1.0, 1.0);
+        _leftEarAngle = (_leftEarAngle + deltaY / 50).clamp(-1.5, 1.5);
+        _leftEarVelocity = deltaY / 200;
+        final bass = (current.bass + valueDelta).clamp(-1.0, 1.0);
         await _handler.equalizer.setBass(bass);
       } else {
         // Oreille droite → aigus
-        _rightEarAngle = (_rightEarAngle + details.delta.dy / 50).clamp(-1.0, 1.0);
-        _rightEarVelocity = details.delta.dy / 200;
-        final treble = (current.treble + delta).clamp(-1.0, 1.0);
+        _rightEarAngle = (_rightEarAngle + deltaY / 50).clamp(-1.5, 1.5);
+        _rightEarVelocity = deltaY / 200;
+        final treble = (current.treble + valueDelta).clamp(-1.0, 1.0);
         await _handler.equalizer.setTreble(treble);
       }
       ref.read(equalizerStateProvider.notifier).state = _handler.equalizer.state;
@@ -224,21 +258,12 @@ class _MiloEqualizerWidgetState extends ConsumerState<MiloEqualizerWidget>
     }
   }
 
-  Future<void> _onScaleUpdate(ScaleUpdateDetails details) async {
-    if (details.scale != 1.0) {
-      HapticFeedback.lightImpact();
-      try {
-        final panDelta = (details.scale - _baseScale) * 2;
-        _baseScale = details.scale;
-        final pan = (ref.read(equalizerStateProvider).pan + panDelta)
-            .clamp(-1.0, 1.0);
-        await _handler.equalizer.setPan(pan);
-        ref.read(equalizerStateProvider.notifier).state =
-            _handler.equalizer.state;
-      } catch (_) {
-        // Silently handle
-      }
-    }
+  void _onScaleEnd(ScaleEndDetails details) {
+    // Donner une vélocité de "lâcher" aux oreilles
+    final vel = details.velocity.pixelsPerSecond.dy / 2000;
+    _leftEarVelocity = vel * 0.5;
+    _rightEarVelocity = vel * 0.5;
+    setState(() => _isInteracting = false);
   }
 }
 
@@ -326,89 +351,93 @@ class _MiloEarsPainter extends CustomPainter {
   final double glowIntensity;
   final bool isInteracting;
 
-  // Palette 3D de l'âne
-  static const _donkeyMain = Color(0xFF7A7A7A);
-  static const _donkeyLight = Color(0xFFA8A8A8);
-  static const _donkeyHighlight = Color(0xFFC4C4C4);
-  static const _donkeyShadow = Color(0xFF4A4A4A);
-  static const _donkeyDark = Color(0xFF3A3A3A);
-  static const _muzzleMain = Color(0xFFD9C9B5);
-  static const _muzzleLight = Color(0xFFEDE0D0);
-  static const _muzzleShadow = Color(0xFFB5A590);
-  static const _earInner = Color(0xFFE8B5C8);
-  static const _earInnerLight = Color(0xFFF5D4E2);
-  static const _noseDark = Color(0xFF2D2D2D);
+  // Palette 3D de l'âne — tons plus chauds et réalistes
+  static const _donkeyMain = Color(0xFF8B7D6B);
+  static const _donkeyLight = Color(0xFFB0A090);
+  static const _donkeyHighlight = Color(0xFFCDBFA8);
+  static const _donkeyShadow = Color(0xFF5A4E40);
+  static const _donkeyDark = Color(0xFF3A3028);
+  static const _muzzleMain = Color(0xFFE0CEBD);
+  static const _muzzleLight = Color(0xFFF0E4D8);
+  static const _muzzleShadow = Color(0xFFBBA998);
+  static const _earInner = Color(0xFFEBB5C8);
+  static const _earInnerLight = Color(0xFFF8D8E6);
+  static const _noseDark = Color(0xFF2D2520);
+  static const _eyebrowColor = Color(0xFF4A3E30);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2 + 15);
-    final headW = size.width * 0.30;
-    final headH = size.width * 0.36;
+    final center = Offset(size.width / 2, size.height / 2 + 20);
+    // Tête plus allongée verticalement pour un vrai âne
+    final headW = size.width * 0.28;
+    final headH = size.width * 0.42;
 
     // ─── Glow derrière les oreilles actives ───
     if (glowIntensity > 0) {
       if (bass.abs() > 0.05) {
         canvas.drawOval(
           Rect.fromCenter(
-            center: Offset(center.dx - headW * 0.8, center.dy - headH * 1.3),
-            width: headW * 1.0,
-            height: headH * 1.4 * leftEarStretch,
+            center: Offset(center.dx - headW * 0.85, center.dy - headH * 1.2),
+            width: headW * 1.4,
+            height: headH * 1.8 * leftEarStretch,
           ),
           Paint()
             ..color = AppColors.yellowGold.withValues(alpha: glowIntensity * 0.3)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 30),
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 35),
         );
       }
       if (treble.abs() > 0.05) {
         canvas.drawOval(
           Rect.fromCenter(
-            center: Offset(center.dx + headW * 0.8, center.dy - headH * 1.3),
-            width: headW * 1.0,
-            height: headH * 1.4 * rightEarStretch,
+            center: Offset(center.dx + headW * 0.85, center.dy - headH * 1.2),
+            width: headW * 1.4,
+            height: headH * 1.8 * rightEarStretch,
           ),
           Paint()
             ..color = AppColors.yellowVivid.withValues(alpha: glowIntensity * 0.3)
-            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 30),
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 35),
         );
       }
     }
 
-    // ─── Oreille gauche (GRANDE, avec gravité) ───
+    // ─── Oreille gauche (TRÈS GRANDE, avec gravité vers l'avant) ───
     _drawDonkeyEar3D(
       canvas,
-      basePos: Offset(center.dx - headW * 0.6, center.dy - headH * 0.55),
-      width: headW * 0.5,
-      height: headH * 1.4 * leftEarStretch,
+      basePos: Offset(center.dx - headW * 0.65, center.dy - headH * 0.5),
+      width: headW * 0.8,
+      height: headH * 2.0 * leftEarStretch,
       gravityAngle: leftEarAngle * 0.4 - 0.15,
       isActive: bass.abs() > 0.05 && isInteracting,
+      isLeft: true,
     );
 
-    // ─── Oreille droite (GRANDE, avec gravité) ───
+    // ─── Oreille droite (TRÈS GRANDE, avec gravité vers l'avant) ───
     _drawDonkeyEar3D(
       canvas,
-      basePos: Offset(center.dx + headW * 0.6, center.dy - headH * 0.55),
-      width: headW * 0.5,
-      height: headH * 1.4 * rightEarStretch,
+      basePos: Offset(center.dx + headW * 0.65, center.dy - headH * 0.5),
+      width: headW * 0.8,
+      height: headH * 2.0 * rightEarStretch,
       gravityAngle: rightEarAngle * 0.4 + 0.15,
       isActive: treble.abs() > 0.05 && isInteracting,
+      isLeft: false,
     );
 
-    // ─── Crinière (effet 3D avec ombres) ───
-    for (var i = 0; i < 9; i++) {
-      final x = center.dx + (i - 4) * headW * 0.1;
+    // ─── Crinière (effet 3D avec ombres, plus épaisse) ───
+    for (var i = 0; i < 11; i++) {
+      final x = center.dx + (i - 5) * headW * 0.1;
       final baseY = center.dy - headH * 0.6;
-      final heightVar = (4 - (i - 4).abs()) * 5.0;
+      final heightVar = (5 - (i - 5).abs()) * 5.5;
       final tuftPath = Path()
-        ..moveTo(x - 5, baseY + 10)
-        ..quadraticBezierTo(x - 2, baseY - heightVar - 10, x, baseY - heightVar - 14)
-        ..quadraticBezierTo(x + 2, baseY - heightVar - 10, x + 5, baseY + 10);
+        ..moveTo(x - 6, baseY + 10)
+        ..quadraticBezierTo(x - 3, baseY - heightVar - 12, x, baseY - heightVar - 16)
+        ..quadraticBezierTo(x + 3, baseY - heightVar - 12, x + 6, baseY + 10);
       // Ombre
       canvas.drawPath(
         tuftPath,
         Paint()
           ..color = _donkeyDark
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 7
+          ..strokeWidth = 8
           ..strokeCap = StrokeCap.round,
       );
       // Mèche
@@ -417,23 +446,23 @@ class _MiloEarsPainter extends CustomPainter {
         Paint()
           ..color = _donkeyShadow
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 5
+          ..strokeWidth = 5.5
           ..strokeCap = StrokeCap.round,
       );
     }
 
-    // ─── Tête (ovale 3D avec gradient) ───
+    // ─── Tête (ovale allongé 3D avec gradient) ───
     final headRect = Rect.fromCenter(
       center: center,
       width: headW * 2.0,
-      height: headH * 1.8,
+      height: headH * 1.9,
     );
     // Ombre portée
     canvas.drawOval(
-      headRect.shift(const Offset(3, 4)),
+      headRect.shift(const Offset(3, 5)),
       Paint()
         ..color = Colors.black.withValues(alpha: 0.3)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
     );
     // Corps principal
     final headPaint = Paint()
@@ -453,20 +482,24 @@ class _MiloEarsPainter extends CustomPainter {
         ..strokeWidth = 2.5,
     );
 
-    // ─── Zones claires autour des yeux (3D) ───
+    // ─── Touffes de poils aux bases des oreilles ───
+    _drawFurTuft(canvas, Offset(center.dx - headW * 0.7, center.dy - headH * 0.4), isLeft: true);
+    _drawFurTuft(canvas, Offset(center.dx + headW * 0.7, center.dy - headH * 0.4), isLeft: false);
+
+    // ─── Zones claires autour des yeux (3D, plus grandes) ───
     final leftEyeZone = Rect.fromCenter(
-      center: Offset(center.dx - headW * 0.38, center.dy - headH * 0.12),
-      width: headW * 0.6,
+      center: Offset(center.dx - headW * 0.38, center.dy - headH * 0.15),
+      width: headW * 0.65,
       height: headH * 0.5,
     );
     canvas.drawOval(leftEyeZone, Paint()
       ..shader = RadialGradient(
         colors: [_donkeyHighlight, _donkeyLight],
       ).createShader(leftEyeZone));
-    
+
     final rightEyeZone = Rect.fromCenter(
-      center: Offset(center.dx + headW * 0.38, center.dy - headH * 0.12),
-      width: headW * 0.6,
+      center: Offset(center.dx + headW * 0.38, center.dy - headH * 0.15),
+      width: headW * 0.65,
       height: headH * 0.5,
     );
     canvas.drawOval(rightEyeZone, Paint()
@@ -474,22 +507,26 @@ class _MiloEarsPainter extends CustomPainter {
         colors: [_donkeyHighlight, _donkeyLight],
       ).createShader(rightEyeZone));
 
-    // ─── Museau 3D ───
-    final muzzleCenter = Offset(center.dx, center.dy + headH * 0.52);
+    // ─── Sourcils expressifs ───
+    _drawEyebrow(canvas, Offset(center.dx - headW * 0.38, center.dy - headH * 0.32), isLeft: true);
+    _drawEyebrow(canvas, Offset(center.dx + headW * 0.38, center.dy - headH * 0.32), isLeft: false);
+
+    // ─── Museau 3D (plus grand et proéminent) ───
+    final muzzleCenter = Offset(center.dx, center.dy + headH * 0.48);
     final muzzleRect = Rect.fromCenter(
       center: muzzleCenter,
-      width: headW * 1.5,
-      height: headH * 0.9,
+      width: headW * 1.6,
+      height: headH * 1.0,
     );
     // Ombre museau
     canvas.drawRRect(
-      RRect.fromRectAndRadius(muzzleRect.shift(const Offset(2, 3)), Radius.circular(headW * 0.65)),
+      RRect.fromRectAndRadius(muzzleRect.shift(const Offset(2, 4)), Radius.circular(headW * 0.7)),
       Paint()
         ..color = Colors.black.withValues(alpha: 0.2)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
     );
     // Museau gradient
-    final muzzleRRect = RRect.fromRectAndRadius(muzzleRect, Radius.circular(headW * 0.65));
+    final muzzleRRect = RRect.fromRectAndRadius(muzzleRect, Radius.circular(headW * 0.7));
     canvas.drawRRect(muzzleRRect, Paint()
       ..shader = RadialGradient(
         center: const Alignment(-0.2, -0.5),
@@ -505,27 +542,45 @@ class _MiloEarsPainter extends CustomPainter {
         ..strokeWidth = 2,
     );
 
-    // ─── Narines 3D ───
-    _drawNostril(canvas, Offset(center.dx - headW * 0.28, center.dy + headH * 0.55));
-    _drawNostril(canvas, Offset(center.dx + headW * 0.28, center.dy + headH * 0.55));
+    // ─── Ligne du menton ───
+    final chinPath = Path()
+      ..moveTo(center.dx - headW * 0.3, center.dy + headH * 0.85)
+      ..quadraticBezierTo(
+        center.dx,
+        center.dy + headH * 0.92,
+        center.dx + headW * 0.3,
+        center.dy + headH * 0.85,
+      );
+    canvas.drawPath(
+      chinPath,
+      Paint()
+        ..color = _muzzleShadow.withValues(alpha: 0.5)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..strokeCap = StrokeCap.round,
+    );
+
+    // ─── Narines 3D (plus grandes, plus écartées) ───
+    _drawNostril(canvas, Offset(center.dx - headW * 0.32, center.dy + headH * 0.52), isLarge: true);
+    _drawNostril(canvas, Offset(center.dx + headW * 0.32, center.dy + headH * 0.52), isLarge: true);
 
     // ─── Yeux 3D ───
     if (isInteracting) {
-      _drawExcitedEye(canvas, Offset(center.dx - headW * 0.38, center.dy - headH * 0.12));
-      _drawExcitedEye(canvas, Offset(center.dx + headW * 0.38, center.dy - headH * 0.12));
+      _drawExcitedEye(canvas, Offset(center.dx - headW * 0.38, center.dy - headH * 0.15));
+      _drawExcitedEye(canvas, Offset(center.dx + headW * 0.38, center.dy - headH * 0.15));
     } else {
-      _drawEye(canvas, Offset(center.dx - headW * 0.38, center.dy - headH * 0.12));
-      _drawEye(canvas, Offset(center.dx + headW * 0.38, center.dy - headH * 0.12));
+      _drawEye(canvas, Offset(center.dx - headW * 0.38, center.dy - headH * 0.15));
+      _drawEye(canvas, Offset(center.dx + headW * 0.38, center.dy - headH * 0.15));
     }
 
     // ─── Sourire ───
     final smilePath = Path()
-      ..moveTo(center.dx - headW * 0.3, center.dy + headH * 0.35)
+      ..moveTo(center.dx - headW * 0.32, center.dy + headH * 0.33)
       ..quadraticBezierTo(
         center.dx,
-        center.dy + headH * (isInteracting ? 0.58 : 0.48),
-        center.dx + headW * 0.3,
-        center.dy + headH * 0.35,
+        center.dy + headH * (isInteracting ? 0.52 : 0.44),
+        center.dx + headW * 0.32,
+        center.dy + headH * 0.33,
       );
     canvas.drawPath(
       smilePath,
@@ -536,12 +591,34 @@ class _MiloEarsPainter extends CustomPainter {
         ..strokeCap = StrokeCap.round,
     );
 
+    // ─── Petites rides de sourire ───
+    if (isInteracting) {
+      for (final side in [-1.0, 1.0]) {
+        final dimplePath = Path()
+          ..moveTo(center.dx + side * headW * 0.34, center.dy + headH * 0.31)
+          ..quadraticBezierTo(
+            center.dx + side * headW * 0.38,
+            center.dy + headH * 0.34,
+            center.dx + side * headW * 0.36,
+            center.dy + headH * 0.37,
+          );
+        canvas.drawPath(
+          dimplePath,
+          Paint()
+            ..color = _donkeyShadow.withValues(alpha: 0.4)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5
+            ..strokeCap = StrokeCap.round,
+        );
+      }
+    }
+
     // ─── Labels d'interaction ───
     if (isInteracting) {
       _drawLabel(canvas, 'BASS', AppColors.yellowGold,
-          Offset(center.dx - headW * 0.8, center.dy - headH * 1.9));
+          Offset(center.dx - headW * 1.0, center.dy - headH * 1.6));
       _drawLabel(canvas, 'TREBLE', AppColors.yellowVivid,
-          Offset(center.dx + headW * 0.8, center.dy - headH * 1.9));
+          Offset(center.dx + headW * 1.0, center.dy - headH * 1.6));
     }
   }
 
@@ -561,7 +638,42 @@ class _MiloEarsPainter extends CustomPainter {
     painter.paint(canvas, Offset(pos.dx - painter.width / 2, pos.dy));
   }
 
-  /// Grande oreille d'âne 3D avec effet de gravité.
+  /// Touffe de poils à la base de l'oreille.
+  void _drawFurTuft(Canvas canvas, Offset pos, {required bool isLeft}) {
+    final dir = isLeft ? -1.0 : 1.0;
+    for (var i = 0; i < 5; i++) {
+      final angle = (i - 2) * 0.15 + dir * 0.2;
+      final length = 8.0 + (2 - (i - 2).abs()) * 3.0;
+      final endX = pos.dx + math.cos(angle - math.pi / 2) * length;
+      final endY = pos.dy + math.sin(angle - math.pi / 2) * length;
+      canvas.drawLine(
+        pos,
+        Offset(endX, endY),
+        Paint()
+          ..color = _donkeyShadow
+          ..strokeWidth = 2.0
+          ..strokeCap = StrokeCap.round,
+      );
+    }
+  }
+
+  /// Sourcil expressif au-dessus de l'œil.
+  void _drawEyebrow(Canvas canvas, Offset pos, {required bool isLeft}) {
+    final dir = isLeft ? -1.0 : 1.0;
+    final browPath = Path()
+      ..moveTo(pos.dx - dir * 12, pos.dy + 2)
+      ..quadraticBezierTo(pos.dx, pos.dy - (isInteracting ? 5 : 3), pos.dx + dir * 12, pos.dy + 1);
+    canvas.drawPath(
+      browPath,
+      Paint()
+        ..color = _eyebrowColor
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.5
+        ..strokeCap = StrokeCap.round,
+    );
+  }
+
+  /// Grande oreille d'âne 3D avec effet de gravité vers l'avant.
   void _drawDonkeyEar3D(
     Canvas canvas, {
     required Offset basePos,
@@ -569,26 +681,28 @@ class _MiloEarsPainter extends CustomPainter {
     required double height,
     required double gravityAngle,
     required bool isActive,
+    required bool isLeft,
   }) {
     canvas.save();
     canvas.translate(basePos.dx, basePos.dy);
     canvas.rotate(gravityAngle);
 
-    // Oreille extérieure avec gradient 3D
+    // Forme d'oreille en feuille allongée — typiquement âne
     final earPath = Path()
-      ..moveTo(-width * 0.45, height * 0.05)
-      ..cubicTo(-width * 0.5, -height * 0.3, -width * 0.15, -height * 0.5, 0, -height * 0.52)
-      ..cubicTo(width * 0.15, -height * 0.5, width * 0.5, -height * 0.3, width * 0.45, height * 0.05)
-      ..cubicTo(width * 0.35, height * 0.2, 0, height * 0.28, 0, height * 0.28)
-      ..cubicTo(0, height * 0.28, -width * 0.35, height * 0.2, -width * 0.45, height * 0.05)
+      ..moveTo(-width * 0.4, height * 0.05)
+      ..cubicTo(-width * 0.55, -height * 0.15, -width * 0.45, -height * 0.4, -width * 0.2, -height * 0.5)
+      ..cubicTo(-width * 0.05, -height * 0.55, width * 0.05, -height * 0.55, width * 0.2, -height * 0.5)
+      ..cubicTo(width * 0.45, -height * 0.4, width * 0.55, -height * 0.15, width * 0.4, height * 0.05)
+      ..cubicTo(width * 0.3, height * 0.18, 0, height * 0.24, 0, height * 0.24)
+      ..cubicTo(0, height * 0.24, -width * 0.3, height * 0.18, -width * 0.4, height * 0.05)
       ..close();
 
-    // Ombre portée de l'oreille
+    // Ombre portée de l'oreille (plus prononcée)
     canvas.drawPath(
-      earPath.shift(const Offset(3, 4)),
+      earPath.shift(const Offset(4, 5)),
       Paint()
-        ..color = Colors.black.withValues(alpha: 0.25)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+        ..color = Colors.black.withValues(alpha: 0.3)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 6),
     );
 
     // Gradient principal de l'oreille
@@ -610,13 +724,14 @@ class _MiloEarsPainter extends CustomPainter {
         ..strokeWidth = isActive ? 3.5 : 2.5,
     );
 
-    // Intérieur rose 3D
+    // Intérieur rose 3D (plus grand, forme de feuille interne)
     final innerPath = Path()
-      ..moveTo(-width * 0.22, height * 0.0)
-      ..cubicTo(-width * 0.25, -height * 0.2, -width * 0.08, -height * 0.35, 0, -height * 0.37)
-      ..cubicTo(width * 0.08, -height * 0.35, width * 0.25, -height * 0.2, width * 0.22, height * 0.0)
-      ..cubicTo(width * 0.15, height * 0.1, 0, height * 0.14, 0, height * 0.14)
-      ..cubicTo(0, height * 0.14, -width * 0.15, height * 0.1, -width * 0.22, height * 0.0)
+      ..moveTo(-width * 0.2, height * 0.0)
+      ..cubicTo(-width * 0.3, -height * 0.1, -width * 0.25, -height * 0.3, -width * 0.1, -height * 0.38)
+      ..cubicTo(-width * 0.02, -height * 0.41, width * 0.02, -height * 0.41, width * 0.1, -height * 0.38)
+      ..cubicTo(width * 0.25, -height * 0.3, width * 0.3, -height * 0.1, width * 0.2, height * 0.0)
+      ..cubicTo(width * 0.13, height * 0.08, 0, height * 0.11, 0, height * 0.11)
+      ..cubicTo(0, height * 0.11, -width * 0.13, height * 0.08, -width * 0.2, height * 0.0)
       ..close();
 
     final innerBounds = innerPath.getBounds();
@@ -627,28 +742,52 @@ class _MiloEarsPainter extends CustomPainter {
         colors: [_earInnerLight, _earInner],
       ).createShader(innerBounds));
 
-    // Highlight subtil
+    // Veines de l'oreille (détail réaliste)
+    final veinPaint = Paint()
+      ..color = _earInner.withValues(alpha: 0.5)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0
+      ..strokeCap = StrokeCap.round;
+    
+    final vein1 = Path()
+      ..moveTo(0, height * 0.05)
+      ..quadraticBezierTo(-width * 0.05, -height * 0.15, 0, -height * 0.3);
+    canvas.drawPath(vein1, veinPaint);
+
+    final vein2 = Path()
+      ..moveTo(0, height * 0.02)
+      ..quadraticBezierTo(width * 0.08, -height * 0.12, width * 0.05, -height * 0.25);
+    canvas.drawPath(vein2, veinPaint);
+
+    final vein3 = Path()
+      ..moveTo(0, height * 0.02)
+      ..quadraticBezierTo(-width * 0.08, -height * 0.12, -width * 0.05, -height * 0.25);
+    canvas.drawPath(vein3, veinPaint);
+
+    // Highlight subtil le long du bord
     canvas.drawPath(
       innerPath,
       Paint()
-        ..color = Colors.white.withValues(alpha: 0.15)
+        ..color = Colors.white.withValues(alpha: 0.12)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 3),
     );
 
     canvas.restore();
   }
 
-  void _drawNostril(Canvas canvas, Offset center) {
+  void _drawNostril(Canvas canvas, Offset center, {bool isLarge = false}) {
+    final w = isLarge ? 16.0 : 13.0;
+    final h = isLarge ? 20.0 : 17.0;
     // Ombre
     canvas.drawOval(
-      Rect.fromCenter(center: center + const Offset(1, 1), width: 14, height: 18),
+      Rect.fromCenter(center: center + const Offset(1, 1), width: w + 1, height: h + 1),
       Paint()
         ..color = Colors.black.withValues(alpha: 0.3)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
     );
     // Narine
     canvas.drawOval(
-      Rect.fromCenter(center: center, width: 13, height: 17),
+      Rect.fromCenter(center: center, width: w, height: h),
       Paint()..color = _noseDark,
     );
     // Reflet
@@ -680,13 +819,29 @@ class _MiloEarsPainter extends CustomPainter {
         ..style = PaintingStyle.stroke
         ..strokeWidth = 2,
     );
-    // Iris
-    canvas.drawCircle(center + const Offset(1, 1), 8, Paint()..color = const Color(0xFF2A1F0A));
+    // Iris marron chaud
+    canvas.drawCircle(center + const Offset(1, 1), 8, Paint()..color = const Color(0xFF3A2810));
     // Pupille
     canvas.drawCircle(center + const Offset(1, 1), 5, Paint()..color = _noseDark);
     // Reflet
     canvas.drawCircle(center + const Offset(4, -3), 3, Paint()..color = Colors.white);
     canvas.drawCircle(center + const Offset(-2, 2), 1.5, Paint()..color = Colors.white.withValues(alpha: 0.6));
+    // Cils en haut
+    for (var i = 0; i < 3; i++) {
+      final angle = -math.pi / 2 + (i - 1) * 0.3;
+      final startX = center.dx + math.cos(angle) * 11;
+      final startY = center.dy + math.sin(angle) * 10;
+      final endX = center.dx + math.cos(angle) * 15;
+      final endY = center.dy + math.sin(angle) * 14;
+      canvas.drawLine(
+        Offset(startX, startY),
+        Offset(endX, endY),
+        Paint()
+          ..color = _donkeyDark
+          ..strokeWidth = 1.5
+          ..strokeCap = StrokeCap.round,
+      );
+    }
   }
 
   void _drawExcitedEye(Canvas canvas, Offset center) {
@@ -712,7 +867,7 @@ class _MiloEarsPainter extends CustomPainter {
         ..strokeWidth = 2,
     );
     // Iris doré
-    canvas.drawCircle(center, 10, Paint()..color = const Color(0xFF2A1F0A));
+    canvas.drawCircle(center, 10, Paint()..color = const Color(0xFF3A2810));
     canvas.drawCircle(center, 7, Paint()
       ..shader = RadialGradient(
         colors: [AppColors.yellowVivid, AppColors.yellowGold],
@@ -722,6 +877,22 @@ class _MiloEarsPainter extends CustomPainter {
     // Étoile reflet
     canvas.drawCircle(center + const Offset(4, -4), 3, Paint()..color = Colors.white);
     canvas.drawCircle(center + const Offset(-2, 3), 2, Paint()..color = Colors.white.withValues(alpha: 0.5));
+    // Cils excités (plus longs)
+    for (var i = 0; i < 4; i++) {
+      final angle = -math.pi / 2 + (i - 1.5) * 0.25;
+      final startX = center.dx + math.cos(angle) * 13;
+      final startY = center.dy + math.sin(angle) * 12;
+      final endX = center.dx + math.cos(angle) * 18;
+      final endY = center.dy + math.sin(angle) * 17;
+      canvas.drawLine(
+        Offset(startX, startY),
+        Offset(endX, endY),
+        Paint()
+          ..color = _donkeyDark
+          ..strokeWidth = 1.5
+          ..strokeCap = StrokeCap.round,
+      );
+    }
   }
 
   @override
